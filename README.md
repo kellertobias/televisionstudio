@@ -12,12 +12,17 @@ The main part of this project is a nodejs based application that provides the co
 
 ## Control desk Software
 
+![Control Desk](docs/desk.jpg)
+
 The main part of this software is the control desk software which is capable of controlling ATEM switchers and OBS. This software is meant to run on a raspberry PI and provides the user interface via a website. there is also a serial interface to and arduino based keyboard interface.
 
 - Main Control Desk Web-App and Server: `/app`
-- Arduino Firmware for control keyboards: `/hardware/button-matrix`
+- Arduino Firmware & Hardware for control keyboards: `/hardware/button-matrix`
 
 ## Tally System
+
+![Tally PCB](docs/tally-pcb.png)
+![Tally Enclosure](docs/tally-enclosure.jpg)
 
 The tally system is based on LoRa communications.
 There is a server that is meant to run on the same raspberry pi as the control desk software. The control desk software sends to the LoRa server which channel is on program and which is on preview. This happens over a simple REST api.
@@ -26,8 +31,7 @@ However if you want to use the tally system without the control desk software, y
 The tally system consists out of:
 
 - Tally Server: `/hardware/tally-server`
-- Tally Client Firmware: `/hardware/tally-lora-client/lora-node`
-- Tally Client PCB: `/hardware/tally-lora-client/pcb`
+- Tally Client Firmware & Hardware: `/hardware/tally-lora-client`
 
 More information on this is in the README.md in the `/hardware/tally-lora-client` folder
 
