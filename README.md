@@ -21,8 +21,8 @@ The main part of this software is the control desk software which is capable of 
 
 ## Tally System
 
-![Tally PCB](docs/tally-pcb.png | width=200)
-![Tally Enclosure](docs/tally-enclosure.jpg | width=200)
+![Tally PCB](docs/tally-pcb.png)
+![Tally Enclosure](docs/tally-enclosure.jpg)
 
 The tally system is based on LoRa communications.
 There is a server that is meant to run on the same raspberry pi as the control desk software. The control desk software sends to the LoRa server which channel is on program and which is on preview. This happens over a simple REST api.
