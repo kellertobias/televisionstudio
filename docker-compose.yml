@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  textgen:
+    build: textgen/.
+    image: registry.kellertobi.de/textgen:latest
+    restart: always
+    ports:
+      - '3210:3210'
+    environment:
+      ROOT_URL: http://localhost:3210
+      PORT: 3210
+  app:
+    build: .
+    image: registry.kellertobi.de/streamcontrol:latest
+    restart: always
+    ports:
+      - '9090:9090'
+    environment:
+      ROOT_URL: http://localhost:9090
+      PORT: 9090
+      CONFIGLOCATION: /config/config.yaml

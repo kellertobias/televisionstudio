@@ -1,0 +1,117 @@
+<html>
+    <link href="/fonts.css" rel="stylesheet">
+    <link href="/generic.css" rel="stylesheet">
+    <body>
+        <div id="content"></div>
+        <script src="/client.js"></script>
+        <script type="text/javascript">
+            var wrap = document.getElementById('content')
+            var windowHeight = window.innerHeight;
+            var customStyle = document.createElement("style");
+            document.querySelector('body').appendChild(customStyle);
+
+            function generateTextContent(content) {
+                let sliderContentNodes = [];
+
+                (content || []).forEach((part) => {
+                    if(part.title) {
+                        sliderContentNodes.push(
+                            createNode('div', 'role', {html: part.title})
+                        )
+                    }
+
+                    (part.content || []).forEach((line) => {
+                        sliderContentNodes.push(
+                            createNode('div', 'name', {html: line})
+                        )
+                    });
+                })
+
+                return sliderContentNodes
+            }
+
+            function doScroll(step) {
+                let text = createNode('div', 'slider-text', {nodes: generateTextContent(step.content)})
+                let slider = createNode('div', 'slider', {nodes: [text]})
+                let marquee = createNode('div', 'marquee marquee-' + (step.direction == 'side' ? 'horizontal' : 'vertical'), {
+                    nodes: [slider]
+                })
+                wrap.appendChild(marquee)
+                let textHeight = text.clientHeight + 100;
+                let totalTravelWay = textHeight + windowHeight;
+                let targetSpeed = step.speed || queryParameters.speed || 100
+                let time = totalTravelWay / targetSpeed
+
+                slider.style.animationDuration = time + "s";
+
+                customStyle.innerHTML = `
+@keyframes scroll {
+    0%   {
+        opacity: 1;
+        transform: translateY(${windowHeight}px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(-${textHeight}px);
+    }
+}
+
+.slider {
+    opacity: 0;
+    transform: translateY(-${textHeight}px);
+}`
+                return new Promise((resolve, reject) => {
+                    console.log(`Starting Scroll for ${time}s = ${totalTravelWay}px / ${targetSpeed} px/s`)
+                    setTimeout(resolve, time * 1000)
+                }).then(() => {
+                    console.log("Scroll Done.")
+                    return Promise.resolve()
+                })
+            }
+
+            function doFade(step) {
+                let text = createNode('div', 'fadetext ' + (step.center ? 'centertext' : ''), {nodes: [
+                    createNode('div', '', {nodes: generateTextContent(step.content)})
+                ]})
+                console.log("Fading in text")
+                wrap.appendChild(text)
+                let fadeTime = step.fade || queryParameters.fade || 1
+                text.style.animation = `fadeIn ${fadeTime}s linear`
+                text.style.opacity = 1
+
+                return new Promise((resolve, reject) => {
+                    setTimeout(resolve, (step.time || 3) * 1000)
+                }).then(() => {
+                    console.log("Fade Done.")
+                    text.style.animation = `fadeOut ${fadeTime}s linear`
+                    text.style.opacity = 0
+
+                    return new Promise((resolve, reject) => {
+                        setTimeout(resolve, fadeTime * 1000)
+                    })
+                }).then(() => {
+                    console.log("Fade Done.") 
+                })
+                
+                return Promise.resolve()
+            }
+
+            function doStep(step) {
+                wrap.innerHTML = ''
+                if(step.type == 'scroll') {
+                    return doScroll(step)
+                } else if(step.type == 'fade') {
+                    return doFade(step)
+                }
+            }
+            setupClient('credits', function(data) {
+                const content = data.content;
+                return content.reduce((p, step) => {
+                    return p.then(() => doStep(step));
+                }, Promise.resolve()).then(() => {
+                    console.log("done")
+                }); // initial
+            })    
+        </script>
+    </body>
+</html>

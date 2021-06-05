@@ -1,0 +1,117 @@
+<html>
+<head>
+    <link href="/fonts.css" rel="stylesheet">
+    <link href="/generic.css" rel="stylesheet">
+</head>
+<body>
+    <div id="content">
+        <div class="centertext">
+            <div style="font-size: 20px; font-family: Roboto; text-align: center;" id="timer">
+            </div>
+        </div>
+    </div>
+<script src="/client.js"></script>
+<script language="JavaScript">
+    const {fade, duration, datetime, running, finished, hl} = queryParameters;
+    const target = new Date(datetime || new Date())
+    target.setSeconds(target.getSeconds() + (duration || 0))
+    const minuteText = {
+        singular: {
+            de: 'Minute',
+            en: 'minute',
+            __: ''
+        }[hl || '__'],
+        plural: {
+            de: 'Minuten',
+            en: 'minutes',
+            __: ''
+        }[hl || '__'],
+    }
+    let countdown = 0
+    if(!hl) countdown = 1
+
+    var outer = document.getElementById('timer')
+
+    var timerText = createNode('div', 'timer-text', {text: running})
+
+    var timerCountdownMinutes = createNode('span', 'timer-minutes', {text: '00'})
+    var timerCountdownSeconds = createNode('span', 'timer-seconds', {text: '00'})
+    var timerDivider = createNode('span', 'timer-div', {text: ':'})
+    var timerCountdownUnit = createNode('span', 'timer-unit', {text: ' ' + minuteText.plural})
+
+    var timerCountdown = createNode('div', 'timer-time', {nodes: [
+        timerCountdownMinutes,
+        timerDivider,
+        timerCountdownSeconds,
+        timerCountdownUnit
+    ]})
+
+    var timerRunning = createNode('div', 'timer-running', {nodes: [
+        timerText,
+        timerCountdown
+    ]})
+    var timerFinished = createNode('div', 'timer-done', {text: finished})   
+
+    outer.appendChild(timerRunning)
+    outer.appendChild(timerFinished)
+
+    timerRunning.hidden = true
+    timerFinished.hidden = true
+
+    function handleVisibility(secondsLeft) {
+        if(secondsLeft > 0) {
+            timerFinished.hidden = true
+            timerRunning.hidden = false
+        } else {
+            timerFinished.hidden = false
+            timerRunning.hidden = true
+        }
+
+        if(!hl) {
+            timerFinished.hidden = true
+            timerRunning.hidden = false
+        } else if(!countdown && secondsLeft <= 90) {
+            timerFinished.hidden = false
+            timerRunning.hidden = true
+        }
+
+        if(countdown) {
+            timerCountdownMinutes.hidden = false
+            timerCountdownSeconds.hidden = false
+            timerDivider.hidden = false
+            timerCountdownUnit.hidden = true
+        } else {
+            timerCountdownMinutes.hidden = false
+            timerCountdownSeconds.hidden = true
+            timerDivider.hidden = true
+            timerCountdownUnit.hidden = false
+        }
+    }
+
+    function setupTimer() {
+        const now = new Date()
+        const secondsLeft = Math.ceil((target.getTime() - now.getTime()) / 1000)
+        let timeLeft = secondsLeft
+        console.log(secondsLeft)
+        const seconds = secondsLeft % 60
+        const minutes = Math.floor(timeLeft / 60)
+        
+        handleVisibility(secondsLeft)
+        if(countdown) {
+            timerCountdownMinutes.innerText = pad(minutes, 2)
+            timerCountdownSeconds.innerText = pad(seconds, 2)
+        } else {
+            timerCountdownMinutes.innerText = minutes
+            timerCountdownSeconds.innerText = seconds
+        }
+        timerCountdownUnit = ' ' + (minutes > 1 ? minuteText.plural : minuteText.singular)
+
+        if(running) {
+
+        }
+    }
+    setupTimer()
+    setInterval(setupTimer, 1000)
+</script>
+</body>
+</html>

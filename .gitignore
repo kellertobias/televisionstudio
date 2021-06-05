@@ -1,0 +1,6 @@
+.vscode
+app/.meteor/local
+app/node_modules
+.history
+app.tar.gz
+kuvo-proxy/

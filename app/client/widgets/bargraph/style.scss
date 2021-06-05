@@ -1,0 +1,137 @@
+.bar-graph {
+  height: 100%;
+  width: auto;
+  border-radius: 2px;
+  display: flex;
+
+  .bar-graph-title {
+    flex-grow: 0;
+    flex-shrink: 0;
+    line-height: 15px;
+  }
+
+  .bar-graph-area {
+    position: relative;
+  }
+
+  &.bar-graph-vertical {
+    flex-direction: column;
+    width: 15px;
+
+    .bar-graph-title {
+      flex-basis: 15px;
+      line-height: 15px;
+      text-align: center;
+    }
+
+    .bar-graph-area {
+      flex-grow: 1;
+      margin: 0 3px;
+    }
+  }
+
+  &.bar-graph-horizontal {
+    flex-direction: row-reverse;
+    height: 15px;
+
+    .bar-graph-title {
+      text-align: left;
+      flex-basis: 32px;
+      text-align: left;
+    }
+
+    .bar-graph-area {
+      flex-grow: 1;
+      margin: 3px 0;
+    }
+  }
+}
+
+.bar-graph-level-back {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  background-color: transparent;
+}
+
+.bar-graph-level {
+  content: " ";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
+.bar-graph-level::after {
+  width: 100%;
+  height: 100%;
+  content: " ";
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 2;
+  background-color: transparent;
+}
+
+$bargraph-off: #444;
+
+.bar-graph-vertical {
+  .bar-graph-level-back {
+    background-repeat: repeat-y;
+    background-image: linear-gradient(
+      to bottom,
+      $bargraph-off 3px,
+      transparent 1px
+    );
+    background-size: 100% 4px;
+  }
+  .bar-graph-level {
+    background-image: linear-gradient(to top, green 0%, yellow 80%, red 100%);
+    clip-path: inset(0% 0 0 0); /* switch off leds via clipping */
+  }
+  .bar-graph-level::after {
+    margin-top: 3px;
+    background-image: linear-gradient(
+      to bottom,
+      #333 1px /* space between leds*/,
+      transparent 1px
+    );
+    background-repeat: repeat-y;
+    background-size: 100% 4px; /* 4px LED height */
+  }
+}
+
+.bar-graph-horizontal {
+  .bar-graph-level-back {
+    background-repeat: repeat-x;
+    background-image: linear-gradient(
+      to right,
+      $bargraph-off 3px,
+      transparent 1px
+    );
+    background-size: 4px 100%;
+  }
+
+  .bar-graph-level {
+    background-image: linear-gradient(to right, green 0%, yellow 80%, red 100%);
+    clip-path: inset(0% 0 0 0); /* switch off leds via clipping */
+  }
+
+  .bar-graph-level::after {
+    margin-left: 3px;
+    background-image: linear-gradient(
+      to right,
+      #333 1px /* space between leds*/,
+      transparent 1px
+    );
+    background-repeat: repeat-x;
+    background-size: 4px 100%; /* 4px LED width */
+  }
+}

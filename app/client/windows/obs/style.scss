@@ -1,0 +1,39 @@
+.obs-scenes {
+  .desk-button {
+    font-size: 14px;
+    line-height: 40px;
+    padding-left: 10px;
+
+    .right {
+      font-weight: bolder;
+      float: right;
+      background-color: #007700;
+      color: #fff;
+      border: 1px solid rgba(#afa, 0.7);
+      line-height: 1.3em;
+      padding: 0 3px;
+      margin: 10px;
+      margin-right: 5px;
+
+      border-radius: 4px;
+    }
+
+    .right.transition-auto {
+      color: #fff;
+      animation: blinking-auto 0.5s infinite;
+    }
+  }
+}
+
+@-webkit-keyframes blinking-auto {
+  0%,
+  49% {
+    background-color: #e50000;
+    border-color: #faa;
+  }
+  50%,
+  100% {
+    background-color: #450000;
+    border-color: #faa;
+  }
+}

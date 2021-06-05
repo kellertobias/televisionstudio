@@ -1,0 +1,613 @@
+import { ConfigBackend } from "../../engine/config";
+import { iModules } from "../../modules";
+import { MacroEngine } from "../../engine/macros";
+
+import { DeskSerialBoardInterface, LedColor, LedStatus } from './serial'
+import { DeskKeyboardInterfaceHelpers } from "./keyboard-helper";
+import { TransitionOnairs, TransitionTies } from "../../modules/atem/usk";
+import { Macro } from '../../engine/macros/macro';
+
+type Tabs = 'macro' | 'aux' | 'scene' | 'audio'
+
+export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
+    left: DeskSerialBoardInterface;
+    right: DeskSerialBoardInterface;
+
+    currentTab: Tabs = 'macro'
+    faderReverse = false
+ 
+    rateChangeHandler ?: (params: {push?: boolean, direction?: -1 | 1}) => void = undefined
+    outputButtonTimeouts:  NodeJS.Timeout[] = [];
+
+    brightnessMain: number = 50
+    brightnessDim: number = 10
+    config: ConfigBackend;
+    recordingPressed: boolean;
+    streamingPressed: boolean;
+
+    constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
+        super(config, modules, macros)
+        this.config = config
+        this.left = new DeskSerialBoardInterface(config, modules, macros, 'left');
+        this.right = new DeskSerialBoardInterface(config, modules, macros, 'right');
+        this.updateBrightness()
+    }
+
+    connect(): Promise<void> {
+        this.brightnessMain = this.config.generic.brightness.main
+        this.brightnessDim = this.config.generic.brightness.dim
+        
+        this.updateBrightness()
+
+        this.left.connect()
+        this.right.connect()
+        return Promise.resolve()
+    }
+    shutdown(): Promise<void> {
+        this.left.shutdown()
+        this.right.shutdown()
+        return Promise.resolve()
+    }
+
+    onRateChange(handler: (params: {push?: boolean, direction?: -1 | 1}) => void) {
+        this.rateChangeHandler = handler
+    }
+
+    private updateTabLedsUpper() {
+        const ledBase : ({
+            color: LedColor,
+            on: boolean,
+            blink: boolean,
+            fast?: boolean,
+        } | undefined | false)[]= [
+            {color: 'yellow', on: this.currentTab == 'macro', blink: false},
+            {color: 'pink', on: this.currentTab == 'scene', blink: false},
+            {color: 'white', on: this.currentTab == 'aux', blink: false},
+            {color: 'cyan', on: this.currentTab == 'audio', blink: false},
+            false,
+            false,
+            this.recordingPressed ? undefined : {color: this.modules.obs.output.recording ? 'red' : 'off', on: true, blink: false},
+            this.streamingPressed ? undefined : {color: this.modules.obs.output.streaming ? 'red' : 'off', on: true, blink: false},
+            {color: this.currentTab == 'aux' ? 'off' : 'white', on: false, blink: false}
+        ]
+
+        ledBase.forEach((params, col) => {
+            if(params === undefined) return
+            if(!params) return this.left.setLed(4, col, {
+                color: 'off',
+                blink: 'off',
+                dim: true,
+                fast: false
+            })
+
+            const {color, on, blink} = params
+            return this.left.setLed(4, col, {
+                color: color,
+                blink: blink ? 'off' : color,
+                dim: !on,
+                fast: params.fast || false
+            })
+        })
+    }
+
+    private macroLed(macro: Macro) {
+        const macroColor : LedStatus = {color: 'yellow', blink: 'yellow', fast: true, dim: true}
+        if(macro.waiting) {
+            macroColor.dim = false
+        } else if (macro.running) {
+            macroColor.dim = false
+            macroColor.blink = 'off'
+        }
+
+        return macroColor
+    }
+
+    private updateTabLedsLower() {
+        const ledStatus : LedStatus[] = []
+        const fillOff = () => {
+            const existing = ledStatus.length
+            for(let i = 0; i < 8 - existing; i++) {
+                ledStatus.push({
+                    color: 'off',
+                    blink: 'off',
+                    dim: true,
+                    fast: false
+                })
+            }
+        }
+
+        switch(this.currentTab) {
+            case 'macro':
+                const macroPage = this.macros.getCurrentPageExecutors();
+                macroPage.forEach((macro) => {
+                    ledStatus.push(this.macroLed(macro))
+                })
+                fillOff()
+
+                break;
+            case 'scene':
+                const scenes = this.modules.obs.scene.scenes.slice(0, 8)
+                scenes.forEach(scene => {
+                    ledStatus.push({
+                        color: scene.live ? 'green' : scene.next ? 'red' : 'pink',
+                        blink: scene.live ? 'green' : scene.next ? 'off' : 'pink',
+                        dim: !(scene.live || (scene.next == true)),
+                        fast: false
+                    })
+                });
+                fillOff()
+
+                break;
+            case 'aux':
+                const currentChannel = this.mapChannelToCol(this.modules.atem.mix.current.aux);
+                const currentCol = currentChannel % 8;
+
+                [...Array(8)].forEach((_val, col) => {
+                    if(currentCol == col) {
+                        ledStatus.push({
+                            color: 'white',
+                            blink: currentChannel == currentCol ? 'white' : 'off',
+                            dim: false,
+                            fast: false
+                        })
+                    } else {
+                        ledStatus.push({
+                            color: 'white',
+                            blink: 'white',
+                            dim: true,
+                            fast: false
+                        })
+                    }
+                });
+
+                ledStatus.push({
+                    color: 'off',
+                    blink: 'off',
+                    dim: true,
+                    fast: false
+                })
+
+                break;
+            case 'audio':
+                this.macros.getCurrentPageExecutors();
+
+                [...Array(8)].forEach(_element => {
+                    ledStatus.push({
+                        color: 'off', //'blue',
+                        blink: 'off', //'blue',
+                        dim: true,
+                        fast: false
+                    })
+                });
+                break;
+        }
+
+        if(this.currentTab != 'aux') {
+            ledStatus.push({
+                color: 'white',
+                blink: 'white',
+                dim: true,
+                fast: false
+            })
+        }
+        
+        this.left.setLedRow(3, ledStatus)
+    }
+
+    private updateTabLeds() {
+        this.updateTabLedsUpper()
+        this.updateTabLedsLower()
+    }
+
+    setTab(tab: Tabs) {
+        this.currentTab = tab
+
+        this.updateTabLeds()
+    }
+
+    changePage(direction: -1 | 1) {
+        if(this.currentTab == 'macro') {
+            if(direction == 1) {
+                this.macros.pageDown()
+            }
+            if(direction == -1) {
+                this.macros.pageUp()
+            }
+        } else if(this.currentTab == 'aux') {
+            //Aux has no Page change
+            return
+        } else {
+            console.log("Change Page not yet implemented for this tab.")
+        }
+    }
+
+    private updateBrightness() {
+        [this.left, this.right].forEach(serial => {
+            serial.brightness = this.brightnessMain
+            serial.brightnessBlink = this.brightnessMain
+
+            serial.brightnessDim = this.brightnessDim
+            serial.brightnessBlinkDim = this.brightnessDim
+        })
+    }
+
+    setBrightness(main: number, dim: number) {
+        this.brightnessMain = main
+        this.brightnessDim = dim
+
+        this.config.generic.brightness.main = main
+        this.config.generic.brightness.dim = dim
+
+        this.updateBrightness()
+    }
+
+    handleMultibus(col: number, _pressed: boolean, _pressedAt: Date) {
+        if(col == 8) return
+        switch (this.currentTab) {
+            case 'macro':
+                this.macros.goExec(col + 1)
+                break;
+            case 'audio':
+                
+                break;
+            
+            case 'scene':
+                const scenes = this.modules.obs.scene.scenes.slice(0, 8)
+                const scene = scenes[col]
+                if(scene) this.modules.obs.scene.set(scene.name)
+                break;
+            
+            case 'aux':
+                const channel = this.mapColToChannel(
+                    col,
+                    this.left.getButton(3, 8).pressed
+                )
+                this.modules.atem.mix.aux(channel)
+                break;
+        }
+    }
+
+    setup(): Promise<void> {
+        this.updateTabLeds()
+
+        this.modules.obs.scene.onListChanged((_params) => {
+            if(this.currentTab == 'scene')
+                this.updateTabLedsLower()
+        })
+
+        this.modules.atem.mix.onAuxChange((_params) => {
+            if(this.currentTab == 'aux')
+                this.updateTabLedsLower()
+        })
+
+
+        this.modules.obs.output.onRecordingChanged((_params) => {
+            this.updateTabLedsUpper()
+        })
+
+        this.modules.obs.output.onStreamChanged((_params) => {
+            this.updateTabLedsUpper()
+        })
+
+        this.macros.onExecutorChange((params) => {
+            const {macro} = params
+            if(this.currentTab == 'macro')
+                this.updateTabLedsLower()
+
+            if(macro && macro.isMaster) {
+                this.right.setLed(1, 8, this.macroLed(macro));
+            }
+        })
+
+        this.modules.atem.mix.onChange((param) => {
+            const {pgm, pvw} = param;
+            const _pgm = this.mapChannelToCol(pgm)
+            const _pvw = this.mapChannelToCol(pvw)
+            const generateRow = (activeColor: LedColor, activeCol: number) : LedStatus[] => {
+                return [...Array(9)].map((_val, col) => {
+                    if(col == 9) return {color: 'off', blink: 'off', dim: true, fast: false}
+                    return {
+                        color: (col == activeCol || col == (activeCol % 8)) ? activeColor : 'off',
+                        blink: col == (activeCol % 8) && activeCol > 8 ? 'off' : ((col == activeCol || col == (activeCol % 8)) ? activeColor : 'off'),
+                        dim: false,
+                        fast: false
+                    }
+                    
+                })
+            }
+
+            this.left.setLedRow(0, generateRow('green', _pvw));
+            this.left.setLedRow(1, generateRow('red', _pgm));
+        })
+
+        this.modules.atem.mix.onBlack((params) => {
+            const {black, auto} = params;
+            this.right.setLed(4, 8, {color: black || auto ? 'red' : 'off', blink: !auto ? 'off' : 'red', dim: false, fast: true})
+        })
+
+        this.modules.atem.mix.onTransitionRunning((params) => {
+            const {running} = params;
+            this.right.setLed(0, 3, {
+                color: running ? 'red' : 'off',
+                blink: running ? 'red' : 'off',
+                dim: false,
+                fast: true
+            })
+            const previewCol = this.mapChannelToCol(this.modules.atem.mix.current.pvw)
+            if(running) {
+                this.left.setLed(0, previewCol, {
+                    color: 'red',
+                    blink: 'red',
+                    dim: false,
+                    fast: false
+                })
+            } else {
+                this.left.setLed(0, previewCol, {
+                    color: 'green',
+                    blink: 'green',
+                    dim: false,
+                    fast: false
+                })
+            }
+        })
+
+        this.modules.atem.mix.onTransitionSettings((params) => {
+            const {style, preview} = params
+
+            this.right.setLed(0, 0, {
+                color: preview ? 'red' : 'off',
+                blink: preview ? 'red' : 'off',
+                dim: false,
+                fast: false
+            });
+
+            ['mix', 'dip', 'wipe', 'DVE'].forEach((element, col) => {
+                this.right.setLed(1, col, {
+                    color: style == element ? 'yellow' : 'off',
+                    blink: style == element ? 'yellow' : 'off',
+                    dim: false,
+                    fast: false
+                })
+            });
+        })
+
+        this.modules.atem.usk.onChange((params) => {
+            const {ties, onair} = params;
+
+            ['bg', 'usk1', 'usk2'].forEach((key, index) => {
+                const col = index + 1
+                const uskTie = ties[key as keyof TransitionTies]
+                this.right.setLed(3, col, {
+                    color: uskTie ? 'yellow' : 'off',
+                    blink: uskTie ? 'yellow' : 'off',
+                    dim: false,
+                    fast: false
+                })
+
+                if(key == 'bg') return
+                const uskOnair = onair[key as keyof TransitionOnairs]
+                this.right.setLed(4, col, {
+                    color: uskOnair ? 'red' : 'off',
+                    blink: uskOnair ? 'red' : 'off',
+                    dim: false,
+                    fast: false
+                })
+            })
+        })
+
+        this.modules.atem.dsk.onState((params) => {
+            const {running, onair, tie} = params;
+            const dsk = params.dsk as 'dsk1' | 'dsk2'
+            const col = {'dsk1': 6, 'dsk2': 7}[dsk];
+
+            this.right.setLed(4, col, {
+                color: onair ? 'red' : 'off',
+                blink: running || !onair ? 'off' : 'red',
+                dim: false,
+                fast: true
+            })
+
+            this.right.setLed(3, col, {
+                color: tie ? 'yellow' : 'off',
+                blink: tie ? 'yellow' : 'off',
+                dim: false,
+                fast: false
+            })
+
+            this.right.setLed(2, col, {
+                color: running ? 'red' : 'off',
+                blink: running ? 'red' : 'off',
+                dim: false,
+                fast: false
+            })
+        })
+
+        this.left.onButton((params) => {
+            const {row, col, pressed, pressedAt} = params
+
+            if(row == 4 && (col == 6 || col == 7)) {
+                if(this.outputButtonTimeouts[col]) clearTimeout(this.outputButtonTimeouts[col])
+                if(col == 6) {
+                    this.recordingPressed = pressed
+                } else {
+                    this.streamingPressed = pressed
+                }
+                if(pressed) {
+                    this.left.setLed(4, col, {
+                        color: 'red',
+                        blink: 'off',
+                        dim: false,
+                        fast: false
+                    })
+
+                    this.outputButtonTimeouts[col] = setTimeout(() => {
+                        this.left.setLed(4, col, {
+                            color: 'red',
+                            blink: 'off',
+                            dim: false,
+                            fast: true
+                        })
+                        if(col == 6) {
+                            if(this.modules.obs.output.recording) {
+                                this.modules.obs.output.endRecording()
+                            } else {
+                                this.modules.obs.output.startRecording()
+                            }
+                        } else {
+                            if(this.modules.obs.output.streaming) {
+                                this.modules.obs.output.endStream()
+                            } else {
+                                this.modules.obs.output.startStream()
+                            }
+                        }
+                    }, 2000)
+                } else {
+                    if(col == 6) {
+                        if(!this.modules.obs.output.recording) {
+                            this.left.setLed(4, col, {
+                                color: 'off',
+                                blink: 'off',
+                                dim: false,
+                                fast: true
+                            })
+                        } else {
+                            this.left.setLed(4, col, {
+                                color: 'red',
+                                blink: 'red',
+                                dim: false,
+                                fast: true
+                            })
+                        }
+                    } else {
+                        if(!this.modules.obs.output.streaming) {
+                            this.left.setLed(4, col, {
+                                color: 'off',
+                                blink: 'off',
+                                dim: false,
+                                fast: true
+                            })
+                        } else {
+                            this.left.setLed(4, col, {
+                                color: 'red',
+                                blink: 'red',
+                                dim: false,
+                                fast: true
+                            })
+                        }
+                    }
+                }
+                return
+            }
+
+            if(!pressed) return
+
+            switch (row) {
+                case 0:
+                case 1:
+                    //Shift does not do anything, just change the function of other buttons.
+                    if(col == 8) return
+
+                    const channel = this.mapColToChannel(
+                        col,
+                        this.left.getButton(row, 8).pressed
+                    )
+                    if(row == 0) return this.modules.atem.mix.prv(channel)
+                    if(row == 1) return this.modules.atem.mix.pgm(channel)
+                case 2:
+                    console.log("This Row is Empty on this board")
+                    break;
+                case 3:
+                    if(col == 8 && this.currentTab != 'aux') return this.changePage(-1)
+                    return this.handleMultibus(col, pressed, pressedAt)
+
+                case 4:
+                    switch(col) {
+                        case 0:
+                            return this.setTab('macro')
+                        case 1:
+                            return this.setTab('scene')
+                        case 2:
+                            return this.setTab('aux')
+                        case 3:
+                            return this.setTab('audio')
+                        case 4:
+                        case 5:
+                        case 6:
+                        case 7:
+                            return
+                        case 8:
+                            return this.changePage(1)
+                    }
+            }
+        })
+
+        this.right.onFader((params) => {
+            const {value} = params
+            let valueOut = value
+            if(this.faderReverse) valueOut = 255 - value
+
+            this.modules.atem.mix.pos(valueOut / 255)
+
+            if(value == 255 && !this.faderReverse) {
+                this.faderReverse = true
+            }
+            if(value == 0 && this.faderReverse) {
+                this.faderReverse = false
+            }
+        })
+
+        this.right.onEncoder((params) => {
+            if(this.rateChangeHandler)
+                this.rateChangeHandler({direction: params.direction})
+        })
+
+        this.right.onButton((params) => {
+            const {row, col, pressed} = params
+            if(!pressed) return
+
+            switch(true) {
+                case (row == 0 && col == 0):
+                    return this.modules.atem.mix.previewTrans()
+
+                case (row == 0 && col == 2):
+                    return this.modules.atem.mix.cut()
+
+                case (row == 0 && col == 3):
+                    return this.modules.atem.mix.auto()
+
+                case (row == 0 && col == 7):
+                    if(this.rateChangeHandler)
+                        this.rateChangeHandler({push: true})
+                    return
+
+                case (row == 1 && col < 4):
+                    return this.modules.atem.mix.type(['mix', 'dip', 'wipe', 'DVE'][col])
+                
+                case (row == 3 && col < 4):
+                    return this.modules.atem.usk.tie({usk: col - 1})
+
+                case (row == 4 && col < 4):
+                    return this.modules.atem.usk.onair({usk: col - 1})
+
+                case (row >= 2 && col >= 6 && col <= 7):
+                    const dsk = col - 5
+
+                    if(row == 4) return this.modules.atem.dsk.onair({dsk})
+                    if(row == 3) return this.modules.atem.dsk.tie({dsk})
+                    if(row == 2) return this.modules.atem.dsk.auto({dsk})
+                    return
+                
+                case (row == 4 && col == 8):
+                    this.modules.atem.mix.black()
+                    return
+
+                case (row == 1 && col == 8):
+                    this.macros.goExec(0)
+                    return
+            }
+            
+        })
+        return Promise.resolve()
+    }
+    
+}

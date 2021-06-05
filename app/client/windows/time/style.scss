@@ -1,0 +1,61 @@
+.time-countdown,
+.time-clock {
+  font-size: 48px;
+  line-height: 72px;
+  text-align: center;
+  color: #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+
+  .desk-button-mini-row {
+    bottom: auto;
+    top: 2px;
+  }
+}
+
+.time-modal {
+  display: flex;
+  flex-direction: column;
+  .time-target {
+    font-size: 30px;
+    text-align: center;
+    margin: 20px;
+    margin-bottom: 0;
+  }
+  .time-modal-save-button {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+  }
+  .picker-form {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+
+    .picker-block {
+      border: 2px solid white;
+      border-radius: 10px;
+      width: 80px;
+      margin: 0 2px;
+
+      .picker-value {
+        font-size: 30px;
+        text-align: center;
+      }
+
+      .picker-title {
+        font-size: 16px;
+        text-align: center;
+      }
+
+      .picker-top,
+      .picker-bottom {
+        padding: 20px;
+        text-align: center;
+        font-size: 20px;
+        cursor: pointer;
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+.state-data-segment {
+  margin-bottom: 5px;
+  .state-data-segment-content {
+    display: flex;
+    flex-direction: row;
+
+    .state-data-segment-icon {
+      flex-basis: 27px;
+      flex-grow: 0;
+      padding-left: 5px;
+      font-size: 1.3em;
+    }
+
+    .state-data-segment-text {
+      padding-top: 0;
+    }
+
+    .state-data-segment-main {
+      font-size: 1.3em;
+      font-weight: bolder;
+    }
+  }
+}

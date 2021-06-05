@@ -1,0 +1,54 @@
+<html>
+
+<head>
+    <link href="/fonts.css" rel="stylesheet">
+    <link href="/generic.css" rel="stylesheet">
+</head>
+<body>
+<div id="content">
+</div>
+<script src="/client.js"></script>
+<script language="JavaScript">
+    console.log("Setting up Application")
+    function renderObject(parentNode, dataNodes) {
+        dataNodes = Array.isArray(dataNodes) ? 
+            dataNodes.map((value, index) => {return {name: 'index-'+index, value}}) 
+            :
+            Object.keys(dataNodes).map((key) => {return {name: key, value: dataNodes[key]}})
+        
+        dataNodes.forEach(({name, value}) => {
+            var node = document.createElement('div')
+            node.className = 'content-node node-' + name
+            node.dataset.key = name
+            if(typeof value == 'string' || typeof value == 'number') {
+                console.log("Textnode", {name, value})
+                node.innerText = String(value)
+            } else if(typeof value == 'boolean' && value) {
+                console.log("Plain Node", {name})
+                node.innerHTML = '&nbsp;'
+            } else {
+                console.log("Inner Node", {name, value})
+                renderObject(node, value)
+            }
+            parentNode.appendChild(node)
+        })
+    }
+    setupClient('textgen', function(data) {
+        var outer = document.getElementById('content')
+        outer.innerHTML = "";
+        console.log("Content got reset");
+
+        var infoDisplayNode = document.createElement('div');
+        infoDisplayNode.className = "animation-fadein"
+
+        var content = data.content || [];
+        var parentNode = document.createElement('div')
+        parentNode.className = 'content-root'
+        renderObject(parentNode, content)
+        infoDisplayNode.appendChild(parentNode)
+        
+        outer.appendChild(infoDisplayNode)
+    })
+</script>
+</body>
+</html>

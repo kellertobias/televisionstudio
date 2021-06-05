@@ -1,0 +1,39 @@
+.rate-section {
+  display: flex;
+  flex-direction: row;
+
+  .rate-section-active,
+  .rate-section-title,
+  .rate-section-number {
+    flex: 1;
+    font-size: 16px;
+    padding: 2px 5px;
+  }
+
+  .rate-section-active {
+    flex-basis: 25px;
+    padding-left: 5px;
+    flex-grow: 0;
+  }
+
+  .rate-section-number {
+    flex-grow: 0;
+    flex-basis: 50px;
+    text-align: right;
+  }
+}
+
+.transition-state > div > div {
+  background: linear-gradient(
+    45deg,
+    #00aa00 25%,
+    #128c12 25%,
+    #128c12 50%,
+    #00aa00 50%,
+    #00aa00 75%,
+    #128c12 75%,
+    #128c12 100%
+  );
+  background-size: 28.28px 28.28px;
+  background-position: bottom;
+}
