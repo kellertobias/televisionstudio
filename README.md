@@ -1,4 +1,4 @@
-# Tobisk Television Control Panel (ToTeCP)
+# Tobisk Television Studio Control Panel (ToskTVStudio)
 
 This Project contains all software and hardware sources necessary to control a setup consisting of:
 
