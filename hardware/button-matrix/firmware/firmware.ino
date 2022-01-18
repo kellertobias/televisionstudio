@@ -67,34 +67,6 @@
 
 short addresses[2][NUMROW][NUMCOL];
 
-short address = 0;
-void getNextAddress()
-{
-    address++;
-    while (
-        address == ADDR_FADER ||
-        address == ADDR_ENCODER ||
-        address == SERIAL_HEADER_A ||
-        address == SERIAL_HEADER_B ||
-        address == SERIAL_FOOTER_A ||
-        address == SERIAL_FOOTER_B)
-    {
-        address++
-    }
-    return
-}
-for (int k = 0; k < 2; k++)
-{
-    for (int r = 0; r < NUMROW; r++)
-    {
-        for (int c = 0; c < NUMCOL; c++)
-        {
-            getNextAddress();
-            addresses[k][r][c] = address
-        }
-    }
-}
-
 short rows_a[] = {ROWA_1, ROWA_2, ROWA_3, ROWA_4, ROWA_5};
 short cols_a[] = {COLA_1, COLA_2, COLA_3, COLA_4, COLA_5, COLA_6, COLA_7, COLA_8, COLA_9};
 short rows_b[] = {ROWB_1, ROWB_2, ROWB_3, ROWB_4, ROWB_5};
@@ -166,6 +138,30 @@ void setup()
 {
     // Start Serial
     Serial.begin(SERIAL_SPEED);
+
+    short address = 0;
+    for (int k = 0; k < 2; k++)
+    {
+        for (int r = 0; r < NUMROW; r++)
+        {
+            for (int c = 0; c < NUMCOL; c++)
+            {
+                address++;
+                while (
+                    address == ADDR_FADER ||
+                    address == ADDR_ENCODER ||
+                    address == SERIAL_HEADER_A ||
+                    address == SERIAL_HEADER_B ||
+                    address == SERIAL_FOOTER_A ||
+                    address == SERIAL_FOOTER_B)
+                {
+                    address++;
+                }
+                addresses[k][r][c] = address;
+            }
+        }
+    }
+
     while (!Serial)
         ;
     delay(50);
@@ -193,7 +189,7 @@ void setup()
     pinMode(ENC_A, INPUT);
     pinMode(ENC_B, INPUT);
 
-    for (int k = 0; i < 2; k++)
+    for (int k = 0; k < 2; k++)
     {
         auto buttons = k == 0 ? buttons_a : buttons_b;
         //Setup Arrays
@@ -443,10 +439,11 @@ void updateLed()
 
     for (int k = 0; k < 2; k++)
     {
-        auto button = k == 0 ? buttons_a[i] : buttons_b[i];
-        auto strip = k == 0 ? strip_a : strip_b for (int i = 0; i < NUMLED; i++)
+        auto buttons = k == 0 ? buttons_a : buttons_b;
+        auto strip = k == 0 ? strip_a : strip_b;
+        for (int i = 0; i < NUMLED; i++)
         {
-            auto led = button.led;
+            auto led = buttons[i].led;
             short pixelBrightness = 0;
             LedColor color;
 
