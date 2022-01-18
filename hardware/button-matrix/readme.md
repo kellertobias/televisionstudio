@@ -20,11 +20,14 @@ The total addressing in the protocol is the following (the values are the range 
 - 2 - LED Brightness Dark (0-255 for dark to bright)
 - 9 - Encoder Turn (1 = Left Turn, 2 = Right Turn, Encoder Push is the same contact as button 58)
 - 10 - Linear Slider (0-255 for 0v to 5V)
-- 11 - Row 1 Button/LED 1 (for button: 0 = not pressed, 1 = pressed, for LED: one byte containing two sets of colors)
+- 11 - Row A 1 Button/LED 1 (for button: 0 = not pressed, 1 = pressed, for LED: one byte containing two sets of colors)
 - ...
-- 19 - Row 1 Button/LED 9 (...)
+- 19 - Row A 1 Button/LED 9 (...)
 - ...
-- 59 - Row 5 Button/LED 9 (...)
+- 59 - Row A 5 Button/LED 9 (...)
+- 60 - Row B 1 Button/LED 1 (for button: 0 = not pressed, 1 = pressed, for LED: one byte containing two sets of colors)
+- ...
+- 107 - Row B 5 Button/LED 9 (...)
 
 # Communication Protocol
 
