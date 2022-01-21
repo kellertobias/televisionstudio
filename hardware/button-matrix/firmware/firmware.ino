@@ -1,7 +1,7 @@
 // Arduino9x_RX
 // -*- mode: C++ -*-
 
-#define SERIAL_DEBUG 1
+#define SERIAL_DEBUG 0
 
 #include <arduino.h>
 #include <Adafruit_NeoPixel.h>
@@ -15,52 +15,53 @@
 #define SERIAL_FOOTER_A 0b11111111
 #define SERIAL_FOOTER_B 0b00000000
 
-#define ROWA_1 23 //A5
-#define ROWA_2 22 //A4
-#define ROWA_3 21 //A3
-#define ROWA_4 20 //A2
-#define ROWA_5 19 //A1
+#define ROWA_1 29 //A5
+#define ROWA_2 27 //A4
+#define ROWA_3 25 //A3
+#define ROWA_4 23 //A2
+#define ROWA_5 15 //A1
 
-#define COLA_1 4
-#define COLA_2 5
-#define COLA_3 6
-#define COLA_4 7
-#define COLA_5 8
-#define COLA_6 9
-#define COLA_7 10
-#define COLA_8 11
-#define COLA_9 12
+#define COLA_1 36
+#define COLA_2 34
+#define COLA_3 32
+#define COLA_4 31
+#define COLA_5 30
+#define COLA_6 28
+#define COLA_7 26
+#define COLA_8 24
+#define COLA_9 22
 
-#define ROWB_1 23 //A5
-#define ROWB_2 22 //A4
-#define ROWB_3 21 //A3
-#define ROWB_4 20 //A2
-#define ROWB_5 19 //A1
+#define ROWB_1 46 //A5
+#define ROWB_2 44 //A4
+#define ROWB_3 42 //A3
+#define ROWB_4 40 //A2
+#define ROWB_5 38 //A1
 
-#define COLB_1 4
-#define COLB_2 5
-#define COLB_3 6
-#define COLB_4 7
-#define COLB_5 8
-#define COLB_6 9
-#define COLB_7 10
-#define COLB_8 11
-#define COLB_9 12
+#define COLB_1 53
+#define COLB_2 51
+#define COLB_3 49
+#define COLB_4 48
+#define COLB_5 47
+#define COLB_6 45
+#define COLB_7 43
+#define COLB_8 41
+#define COLB_9 39
 
-#define ENC_A 14
-#define ENC_B 16
+#define ENC_A 52 // OR 35
+#define ENC_B 50 // OR 33
 
 // Free Pins: SCK(15), CS(17), TX(1), RX(0)
 
-#define WS2812_A 13 // D1
-#define WS2812_B 13 // D1
-#define FADER A0
+#define WS2812_A 14
+#define WS2812_B 37
+#define FADER A15
 
 #define NUMROW 5
 #define NUMCOL 9
 #define NUMLED NUMROW *NUMCOL
 
 #define ACTIVE_STATE LOW
+#define INACTIVE_STATE HIGH
 
 #define ADDR_FADER 0b00000001
 #define ADDR_ENCODER 0b10000001
@@ -71,6 +72,8 @@ short rows_a[] = {ROWA_1, ROWA_2, ROWA_3, ROWA_4, ROWA_5};
 short cols_a[] = {COLA_1, COLA_2, COLA_3, COLA_4, COLA_5, COLA_6, COLA_7, COLA_8, COLA_9};
 short rows_b[] = {ROWB_1, ROWB_2, ROWB_3, ROWB_4, ROWB_5};
 short cols_b[] = {COLB_1, COLB_2, COLB_3, COLB_4, COLB_5, COLB_6, COLB_7, COLB_8, COLB_9};
+short *rows;
+short *cols;
 
 bool allowDebug = true;
 
@@ -122,6 +125,9 @@ short col = 0;
 short rowPin = 0;
 short colPin = 0;
 
+sButtons *buttons;
+Adafruit_NeoPixel strip;
+
 void fill(short r, short g, short b)
 {
     for (int i = 0; i < NUMLED; i++)
@@ -166,10 +172,10 @@ void setup()
         ;
     delay(50);
     strip_a.begin();
-    strip_a.setBrightness(255);
-    strip_a.show();
     strip_b.begin();
+    strip_a.setBrightness(255);
     strip_b.setBrightness(255);
+    strip_a.show();
     strip_b.show();
 
     //pinMode for Matrix
@@ -191,34 +197,63 @@ void setup()
 
     for (int k = 0; k < 2; k++)
     {
-        auto buttons = k == 0 ? buttons_a : buttons_b;
+        buttons = k == 0 ? buttons_a : buttons_b;
         //Setup Arrays
         for (int i = 0; i < NUMROW * NUMCOL; i++)
         {
-            auto button = buttons[i];
-            button.pressed = false;
-            button.led.on.red = 1;
-            button.led.on.green = 0;
-            button.led.on.blue = 0;
-            button.led.off.red = 0;
-            button.led.off.green = 0;
-            button.led.off.blue = 1;
-            button.led.dimmed = true;
-            button.led.fast = true;
+            buttons[i].pressed = false;
+            buttons[i].led.on.red = 1;
+            buttons[i].led.on.green = 0;
+            buttons[i].led.on.blue = 0;
+            buttons[i].led.off.red = 0;
+            buttons[i].led.off.green = 0;
+            buttons[i].led.off.blue = 1;
+            buttons[i].led.dimmed = true;
+            buttons[i].led.fast = true;
         }
     }
+
+    for (int i = 0; i < NUMLED; i++)
+    {
+        if (i > 0)
+        {
+            strip_a.setPixelColor(i - 1, 0, 0, 0);
+            strip_b.setPixelColor(i - 1, 0, 0, 0);
+        }
+        strip_a.setPixelColor(i, 255, 0, 255);
+        strip_b.setPixelColor(i, 0, 255, 0);
+        strip_a.show();
+        strip_b.show();
+        delay(10);
+    }
+    fill(255, 0, 255);
+    strip_a.show();
+    strip_b.show();
+    delay(250);
+    fill(0, 0, 0);
+    strip_a.show();
+    strip_b.show();
 }
 
-void sendMessage(short address, short message)
+void sendMessage(short unit, short row, short col, short address, short message)
 {
-    Serial.write((byte)SERIAL_HEADER_A);
-    Serial.write((byte)SERIAL_HEADER_B);
+    if (SERIAL_DEBUG)
+    {
+        char tmp[64];
+        sprintf(tmp, "%d:%d:%d Addr: #%02X Message: %02X\n", unit, row, col, address, message);
+        Serial.write(tmp);
+    }
+    else
+    {
+        Serial.write((byte)SERIAL_HEADER_A);
+        Serial.write((byte)SERIAL_HEADER_B);
 
-    Serial.write((byte)address);
-    Serial.write((byte)message);
+        Serial.write((byte)address);
+        Serial.write((byte)message);
 
-    Serial.write((byte)SERIAL_FOOTER_A);
-    Serial.write((byte)SERIAL_FOOTER_B);
+        Serial.write((byte)SERIAL_FOOTER_A);
+        Serial.write((byte)SERIAL_FOOTER_B);
+    }
 }
 
 int arrayPos = 0;
@@ -226,16 +261,13 @@ void readMatrix()
 {
     for (int k = 0; k < 2; k++)
     {
-        auto buttons = k == 0 ? buttons_a : buttons_b;
-        auto rows = k == 0 ? rows_a : rows_b;
-        auto cols = k == 0 ? cols_a : cols_b;
-
-        auto unitAddresses = addresses[k];
+        buttons = k == 0 ? buttons_a : buttons_b;
+        rows = k == 0 ? rows_a : rows_b;
+        cols = k == 0 ? cols_a : cols_b;
 
         arrayPos = 0;
         for (row = 0; row < NUMROW; row++)
         {
-            auto rowAddresses = unitAddresses[row];
             rowPin = rows[row];
             pinMode(rowPin, OUTPUT);
             digitalWrite(rowPin, ACTIVE_STATE);
@@ -250,10 +282,12 @@ void readMatrix()
                 {
                     buttons[arrayPos].pressed = btnState;
                     btnState == ACTIVE_STATE;
-                    sendMessage(rowAddresses[col], btnState);
+                    sendMessage(k, row, col, addresses[k][row][col], btnState);
                 }
                 arrayPos++;
             }
+
+            digitalWrite(rowPin, INACTIVE_STATE);
             pinMode(rowPin, INPUT);
         }
     }
@@ -271,7 +305,7 @@ void readFader()
     {
         faderValue = currentValue;
 
-        sendMessage(0b00000001, currentValue);
+        sendMessage(3, 0, 0, 0b00000001, currentValue);
     }
 }
 
@@ -287,11 +321,11 @@ void readEncoder()
     {
         if (digitalRead(ENC_B) == LOW)
         {
-            sendMessage(ADDR_ENCODER, 0b00000010);
+            sendMessage(3, 0, 1, ADDR_ENCODER, 0b00000010);
         }
         else
         {
-            sendMessage(ADDR_ENCODER, 0b00000001);
+            sendMessage(3, 0, 1, ADDR_ENCODER, 0b00000001);
         }
     }
     encoderPinALast = encoderPinACur;
@@ -315,6 +349,7 @@ short currentReadIndex = 0;
 short currentWriteIndex = 0;
 
 int readStart = tick;
+sButtons button;
 
 void readSerial()
 {
@@ -401,7 +436,7 @@ void readSerial()
                 currentWriteIndex = 0;
             }
 
-            auto button = (currentReadIndex < NUMLED) ? buttons_a[currentWriteIndex] : buttons_b[currentWriteIndex];
+            button = (currentReadIndex < NUMLED) ? buttons_a[currentWriteIndex] : buttons_b[currentWriteIndex];
 
             button.led.on.red = (in & 0b10000000) > 0;
             button.led.on.green = (in & 0b01000000) > 0;
@@ -439,60 +474,59 @@ void updateLed()
 
     for (int k = 0; k < 2; k++)
     {
-        auto buttons = k == 0 ? buttons_a : buttons_b;
-        auto strip = k == 0 ? strip_a : strip_b;
+        buttons = k == 0 ? buttons_a : buttons_b;
+        strip = k == 0 ? strip_a : strip_b;
         for (int i = 0; i < NUMLED; i++)
         {
-            auto led = buttons[i].led;
             short pixelBrightness = 0;
             LedColor color;
 
             switch (ledTick)
             {
             case 0:
-                color = led.on;
-                pixelBrightness = led.dimmed ? brightness.dim.on : brightness.main.on;
+                color = buttons[i].led.on;
+                pixelBrightness = buttons[i].led.dimmed ? brightness.dim.on : brightness.main.on;
                 break;
 
             case 1:
-                if (led.fast)
+                if (buttons[i].led.fast)
                 {
-                    color = led.off;
-                    pixelBrightness = led.dimmed ? brightness.dim.off : brightness.main.off;
+                    color = buttons[i].led.off;
+                    pixelBrightness = buttons[i].led.dimmed ? brightness.dim.off : brightness.main.off;
                 }
                 else
                 {
-                    color = led.on;
-                    pixelBrightness = led.dimmed ? brightness.dim.on : brightness.main.on;
+                    color = buttons[i].led.on;
+                    pixelBrightness = buttons[i].led.dimmed ? brightness.dim.on : brightness.main.on;
                 }
                 break;
 
             case 2:
-                color = led.on;
-                pixelBrightness = led.dimmed ? brightness.dim.on : brightness.main.on;
+                color = buttons[i].led.on;
+                pixelBrightness = buttons[i].led.dimmed ? brightness.dim.on : brightness.main.on;
                 break;
 
             case 3:
-                color = led.off;
-                pixelBrightness = led.dimmed ? brightness.dim.off : brightness.main.off;
+                color = buttons[i].led.off;
+                pixelBrightness = buttons[i].led.dimmed ? brightness.dim.off : brightness.main.off;
                 break;
 
             case 4:
-                if (led.fast)
+                if (buttons[i].led.fast)
                 {
-                    color = led.on;
-                    pixelBrightness = led.dimmed ? brightness.dim.on : brightness.main.on;
+                    color = buttons[i].led.on;
+                    pixelBrightness = buttons[i].led.dimmed ? brightness.dim.on : brightness.main.on;
                 }
                 else
                 {
-                    color = led.off;
-                    pixelBrightness = led.dimmed ? brightness.dim.off : brightness.main.off;
+                    color = buttons[i].led.off;
+                    pixelBrightness = buttons[i].led.dimmed ? brightness.dim.off : brightness.main.off;
                 }
                 break;
 
             case 5:
-                color = led.off;
-                pixelBrightness = led.dimmed ? brightness.dim.off : brightness.main.off;
+                color = buttons[i].led.off;
+                pixelBrightness = buttons[i].led.dimmed ? brightness.dim.off : brightness.main.off;
                 break;
 
             default:
