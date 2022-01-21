@@ -37,10 +37,21 @@ export interface ButtonStatus {
   pressed: boolean;
   pressedAt?: Date;
 }
+let addressIterator = 0;
+const NUMROW = 5;
+const NUMCOL = 9;
 
 export class DeskSerialBoardInterface extends BasicInterface {
   static MESSAGE_HEADER: number[] = [0b10101010, 0b00000000];
   static MESSAGE_FOOTER: number[] = [0b11111111, 0b00000000];
+  static ADDR_FADER: number = 0b00000001;
+  static ADDR_ENCODER: number = 0b10000001;
+  private static EXISING_ADDRESSES = [
+    DeskSerialBoardInterface.ADDR_ENCODER,
+    DeskSerialBoardInterface.ADDR_FADER,
+    ...DeskSerialBoardInterface.MESSAGE_HEADER,
+    ...DeskSerialBoardInterface.MESSAGE_FOOTER,
+  ];
 
   static LED_COLOR_MAP = {
     red: 0b100,
@@ -53,12 +64,19 @@ export class DeskSerialBoardInterface extends BasicInterface {
     off: 0b000,
   };
 
-  matrix: MatrixCell[][][] = ["left", "right"].map((side) =>
-    [...Array(5)].map((_row, x) => {
-      return [...Array(9)].map(
-        (_col, y): MatrixCell => {
-          const isEven = (x + y) % 2 == 0;
+  private static addresses: Record<number, [number, number, number]> = {};
 
+  private matrix: MatrixCell[][][] = ["left", "right"].map((_side, k) =>
+    [...Array(5)].map((_row, r) => {
+      return [...Array(9)].map(
+        (_col, c): MatrixCell => {
+          addressIterator++;
+          while (
+            DeskSerialBoardInterface.EXISING_ADDRESSES.includes(addressIterator)
+          ) {
+            addressIterator++;
+          }
+          DeskSerialBoardInterface.addresses[addressIterator] = [k, r, c];
           return {
             led: {
               color: "off",
@@ -121,8 +139,8 @@ export class DeskSerialBoardInterface extends BasicInterface {
         }, 500);
         return Promise.resolve();
       }
-      console.log("[SERIAL] Open");
-      this.port = new SerialPort(serialPort, { baudRate: 115200 });
+      console.log(`[SERIAL] Open ${serialPort}`);
+      this.port = new SerialPort(serialPort, { baudRate: 250000 });
       this.parser = this.port.pipe(
         new Delimiter({ delimiter: DeskSerialBoardInterface.MESSAGE_FOOTER })
       );
@@ -196,19 +214,20 @@ export class DeskSerialBoardInterface extends BasicInterface {
   }
 
   setLed(side: "left" | "right", row: number, col: number, status: LedStatus) {
-    const _row = this.matrix.length - row - 1;
-
-    const cell = this.matrix[side == "left" ? 0 : 1][_row][col];
+    const submatrix = this.matrix[side == "left" ? 0 : 1];
+    const _row = submatrix.length - row - 1;
+    const cell = submatrix[_row][col];
     if (!cell) throw Error(`Cell ${_row}:${col} does not exist.`);
 
     cell.led = status;
   }
 
   setLedRow(side: "left" | "right", row: number, status: LedStatus[]) {
-    const _row = this.matrix.length - row - 1;
+    const submatrix = this.matrix[side == "left" ? 0 : 1];
+    const _row = submatrix.length - row - 1;
 
     status.forEach((led, col) => {
-      const cell = this.matrix[side == "left" ? 0 : 1][_row][col];
+      const cell = submatrix[_row][col];
       if (!cell) throw Error(`Cell ${_row}:${col} does not exist.`);
       cell.led = led;
     });
@@ -222,6 +241,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 
   onReceive = (buf: Buffer) => {
     const data: number[] = Array.from(buf);
+    console.log("SERIAL DATA", buf.toString());
 
     if (!startsWith(data, DeskSerialBoardInterface.MESSAGE_HEADER)) {
       console.log("Got invalid Message. Header Wrong.");
@@ -240,7 +260,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
         console.log("Commands 0x00 or 0xFF are not allowed.");
         break;
 
-      case (command & 0b10000000) == 0b10000000:
+      case command === DeskSerialBoardInterface.ADDR_ENCODER:
         //if the first bit is one followed by three bits of zero
         //the last four bits indicate up to 16 Encoders.
         //The data will be 0b0X000010 for left and 0b0X000001 for right
@@ -255,7 +275,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
         });
         break;
 
-      case (command & 0b11110000) == 0b00000000:
+      case command === DeskSerialBoardInterface.ADDR_FADER:
         //If the first four bits are zero, the last bits index up to 15 faders.
         //We expect two bytes of data containing ten bits of information.
         //The leading bytes, that we will ignore should not be 1
@@ -269,18 +289,24 @@ export class DeskSerialBoardInterface extends BasicInterface {
         break;
 
       default:
+        const [side, row, col] = DeskSerialBoardInterface.addresses[
+          command
+        ] ?? [-1, -1, -1];
+        console.log({ side, row, col });
+
+        if (side == -1 || row == -1 || col == -1) {
+          console.log("Address Invalid");
+          break;
+        }
         //in every other case, the first bit is zero,
         //the next three bits index the button row from top to bottom, (1-7)
         //the next four bits index the button column from left to right, (0-15)
-        const side = "left"; // @TODO
-        const row = ((command & 0b01110000) >>> 4) - 1;
-        const col = command & 0b00001111;
 
         //The Value of a button is either pressed (0b00000001) or released (0b00000000)
         const pressed = !data[0];
         let pressedAt: Date | undefined = undefined;
         try {
-          const cell = this.matrix[side == "left" ? 0 : 1][row][col];
+          const cell = this.matrix[side][row][col];
 
           if (pressed) pressedAt = new Date();
           else pressedAt = cell.button.pressedAt;
@@ -288,7 +314,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
           cell.button.pressed = pressed;
           cell.button.pressedAt = pressedAt;
         } catch (error) {
-          console.log(`Cell ${row}:${col} does not exist.`);
+          console.log(`Cell ${side}:${row}:${col} does not exist.`);
         }
 
         this.runEventHandlers(`button-${side}`, {
@@ -310,12 +336,12 @@ export class DeskSerialBoardInterface extends BasicInterface {
 
     //Add Global Status
     statusMessage.push(this.debugAllowed ? 0xff : 0x00);
-    statusMessage.push(Math.max(0, Math.min(255, this.brightness)));
-    statusMessage.push(Math.max(0, Math.min(255, this.brightnessBlink)));
-    statusMessage.push(Math.max(0, Math.min(255, this.brightnessDim)));
-    statusMessage.push(Math.max(0, Math.min(255, this.brightnessBlinkDim)));
-    this.matrix.forEach((sideBoard, sideIndex) => {
-      sideBoard.forEach((row) => {
+    statusMessage.push(this.brightness);
+    statusMessage.push(this.brightnessBlink);
+    statusMessage.push(this.brightnessDim);
+    statusMessage.push(this.brightnessBlinkDim);
+    this.matrix.forEach((side) => {
+      side.forEach((row) => {
         row.forEach((cell) => {
           const led = cell.led;
 
@@ -339,7 +365,8 @@ export class DeskSerialBoardInterface extends BasicInterface {
         console.log("[SERIAL] UPDATE LED: ", statusMessage);
       }
       this.statusOverwriteTimer = 10;
-      return this.send(statusMessage);
+      console.log("[SERIAL] UPDATE LED: ", statusMessage, statusMessage.length);
+      return this.send(statusMessage.map((x) => Math.max(0, Math.min(255, x))));
     }
 
     this.statusOverwriteTimer--;

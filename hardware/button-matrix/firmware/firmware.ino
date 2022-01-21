@@ -1,7 +1,7 @@
 // Arduino9x_RX
 // -*- mode: C++ -*-
 
-#define SERIAL_DEBUG 0
+#define SERIAL_DEBUG 1
 
 #include <arduino.h>
 #include <Adafruit_NeoPixel.h>
@@ -58,7 +58,8 @@
 
 #define NUMROW 5
 #define NUMCOL 9
-#define NUMLED NUMROW *NUMCOL
+#define NUMLED 45
+#define NUMLEDDOUBLE 90
 
 #define ACTIVE_STATE LOW
 #define INACTIVE_STATE HIGH
@@ -235,13 +236,16 @@ void setup()
     strip_b.show();
 }
 
+char temp[64];
+
 void sendMessage(short unit, short row, short col, short address, short message)
 {
     if (SERIAL_DEBUG)
     {
-        char tmp[64];
-        sprintf(tmp, "%d:%d:%d Addr: #%02X Message: %02X\n", unit, row, col, address, message);
-        Serial.write(tmp);
+        sprintf(temp, "%d:%d:%d Addr: #%02X Message: %02X\n", unit, row, col, address, message);
+        Serial.write(temp);
+        Serial.write((byte)SERIAL_FOOTER_A);
+        Serial.write((byte)SERIAL_FOOTER_B);
     }
     else
     {
@@ -419,7 +423,7 @@ void readSerial()
             break;
 
         case ReadingLeds:
-            if (currentReadIndex >= NUMLED * 2)
+            if (currentReadIndex >= NUMLEDDOUBLE)
             {
                 currentReadIndex = 0;
                 currentWriteIndex = 0;
@@ -436,16 +440,16 @@ void readSerial()
                 currentWriteIndex = 0;
             }
 
-            button = (currentReadIndex < NUMLED) ? buttons_a[currentWriteIndex] : buttons_b[currentWriteIndex];
+            buttons = (currentReadIndex < NUMLED) ? buttons_a : buttons_b;
 
-            button.led.on.red = (in & 0b10000000) > 0;
-            button.led.on.green = (in & 0b01000000) > 0;
-            button.led.on.blue = (in & 0b00100000) > 0;
-            button.led.off.red = (in & 0b00010000) > 0;
-            button.led.off.green = (in & 0b00001000) > 0;
-            button.led.off.blue = (in & 0b00000100) > 0;
-            button.led.dimmed = (in & 0b00000010) > 0;
-            button.led.fast = (in & 0b00000001) > 0;
+            buttons[currentWriteIndex].led.on.red = (in & 0b10000000) > 0;
+            buttons[currentWriteIndex].led.on.green = (in & 0b01000000) > 0;
+            buttons[currentWriteIndex].led.on.blue = (in & 0b00100000) > 0;
+            buttons[currentWriteIndex].led.off.red = (in & 0b00010000) > 0;
+            buttons[currentWriteIndex].led.off.green = (in & 0b00001000) > 0;
+            buttons[currentWriteIndex].led.off.blue = (in & 0b00000100) > 0;
+            buttons[currentWriteIndex].led.dimmed = (in & 0b00000010) > 0;
+            buttons[currentWriteIndex].led.fast = (in & 0b00000001) > 0;
 
             currentWriteIndex++;
             currentReadIndex++;
