@@ -7,15 +7,65 @@ import { ConfigBackend } from '../../engine/config';
 import { iModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
 
-import {
-	ButtonStatus,
-	LedStatus,
-	LED_COLOR_MAP,
-	matrix,
-} from './serial-helpers';
+export type LedColor =
+	| 'red'
+	| 'yellow'
+	| 'green'
+	| 'cyan'
+	| 'blue'
+	| 'pink'
+	| 'white'
+	| 'off';
+
+export interface LedStatus {
+	color: LedColor;
+	blink: LedColor;
+	dim: boolean;
+	fast: boolean;
+}
+
+export interface ButtonStatus {
+	pressed: boolean;
+	pressedAt?: Date;
+}
+
+export interface MatrixCell {
+	button: ButtonStatus;
+	led: LedStatus;
+}
+
+export const LED_COLOR_MAP = {
+	red: 0b100,
+	yellow: 0b110,
+	green: 0b010,
+	cyan: 0b011,
+	blue: 0b001,
+	pink: 0b101,
+	white: 0b111,
+	off: 0b000,
+};
 
 export class DeskSerialBoardInterface extends BasicInterface {
-	private matrix = matrix;
+	private matrix: MatrixCell[][][] = ['left', 'right'].map(() =>
+		[...Array(5)].map(() => {
+			return [...Array(9)].map(
+				(): MatrixCell => {
+					return {
+						led: {
+							color: 'off',
+							blink: 'off',
+							dim: true,
+							fast: false,
+						},
+						button: {
+							pressed: false,
+							pressedAt: undefined,
+						},
+					};
+				},
+			);
+		}),
+	);
 
 	brightness: number = 20;
 	brightnessBlink: number = 20;
@@ -73,7 +123,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			return;
 		}
 
-		this.socket.on('data', this.onReceive);
+		this.socket.on('data', this.onReceive.bind(this));
 
 		this.socket.on('close', () => {
 			console.log('[SERIAL-CLIENT] Closed');
@@ -155,7 +205,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		return cell.button;
 	}
 
-	onReceive = (buf: Buffer) => {
+	onReceive(buf: Buffer): void {
 		const data = buf.toString();
 		const [address, valueRaw] = data.split('=');
 		const [side, row, col] = address.split(':').map((x) => Number(x));
@@ -204,8 +254,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 					console.log(`Cell ${side}:${row}:${col} does not exist.`);
 				}
 
-				console.log(`BTN ${side}:${row}:${col}=${pressed}`);
-				this.runEventHandlers(`button-${side}`, {
+				this.runEventHandlers(`button-${side ? 'right' : 'left'}`, {
 					row,
 					col,
 					pressed,
@@ -214,7 +263,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 
 				break;
 		}
-	};
+	}
 
 	sendStatus(): Promise<void> {
 		const statusMessage: number[] = [];
@@ -244,10 +293,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			this.statusOverwriteTimer == 0
 		) {
 			this.lastStatus = statusMessage;
-			if (!arrayEquals(statusMessage, this.lastStatus)) {
-				console.log('[SERIAL] UPDATE LED: ', statusMessage);
-			}
-			this.statusOverwriteTimer = 50;
+			this.statusOverwriteTimer = 10;
 			return this.send(statusMessage.map((x) => Math.max(0, Math.min(255, x))));
 		}
 

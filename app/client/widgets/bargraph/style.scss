@@ -100,7 +100,7 @@ $bargraph-off: #444;
     margin-top: 3px;
     background-image: linear-gradient(
       to bottom,
-      #333 1px /* space between leds*/,
+      rgba(#333, 0.5) 1px /* space between leds*/,
       transparent 1px
     );
     background-repeat: repeat-y;
@@ -128,7 +128,7 @@ $bargraph-off: #444;
     margin-left: 3px;
     background-image: linear-gradient(
       to right,
-      #333 1px /* space between leds*/,
+      rgba(#333, 0.5) 1px /* space between leds*/,
       transparent 1px
     );
     background-repeat: repeat-x;

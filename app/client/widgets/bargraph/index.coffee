@@ -14,8 +14,31 @@ export class BarGraph extends React.Component
 					when this.props.horizontal then 'bar-graph-horizontal'
 					else 'bar-graph-vertical'
 			].join(' ')}
+			style={{
+				[switch
+					when this.props.vertical then 'width'
+					when this.props.horizontal then 'height'
+					else 'width'
+				]: this.props.width + 3,
+			}}
 		>
-			<div className="bar-graph-area">
+			<div className="bar-graph-area" style={{
+				[switch
+					when this.props.vertical then 'width'
+					when this.props.horizontal then 'height'
+					else 'width'
+				]: this.props.width,
+				...(switch
+					when this.props.width and this.props.horizontal then {
+						marginTop: 1
+						marginBottom: 1
+					}
+					when this.props.width then {
+						marginLeft: 1
+						marginRight: 1
+					}
+				)
+			}}>
 				<div className="bar-graph-level-back"/>
 				<div className="bar-graph-level" style={{
 					'clipPath': switch

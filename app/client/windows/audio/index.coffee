@@ -18,7 +18,7 @@ export class AudioView extends React.Component
 					title="Audio"
 					type="blue"
 					padded={true}
-					disabled="Audio Module not yet finished"
+					disabled="Module Disabled"
 					modal={
 						title: 'Set Audio Levels'
 						children: <>
@@ -31,20 +31,28 @@ export class AudioView extends React.Component
 						<div className="audio-meters">
 							<div className="meter-group">
 								<div className="meter-group-content">
-									<BarGraph title="L" vertical={true} value={100}/>
-									<BarGraph title="R" vertical={true} value={100}/>
+									<BarGraph title="L" vertical={true} value={100} width={5}/>
+									<BarGraph title="R" vertical={true} value={100} width={5}/>
+									<BarGraph title="1" vertical={true} value={100} width={5}/>
+									<BarGraph title="2" vertical={true} value={100} width={5}/>
+									<BarGraph title="3" vertical={true} value={100} width={5}/>
+									<BarGraph title="4" vertical={true} value={100} width={5}/>
+									<BarGraph title="5" vertical={true} value={100} width={5}/>
+									<BarGraph title="5" vertical={true} value={100} width={5}/>
+									<BarGraph title="7" vertical={true} value={100} width={5}/>
+									<BarGraph title="8" vertical={true} value={100} width={5}/>
 								</div>
 								<div className="meter-group-title">
-									Master
+									Inputs
 								</div>
 							</div>
 							<div className="meter-group">
 								<div className="meter-group-content">
-									<BarGraph title="L" vertical={true} value={100}/>
-									<BarGraph title="R" vertical={true} value={100}/>
+									<BarGraph title="L" vertical={true} value={100} width={10}/>
+									<BarGraph title="R" vertical={true} value={100} width={10}/>
 								</div>
 								<div className="meter-group-title">
-									Aux
+									Master
 								</div>
 							</div>
 						</div>

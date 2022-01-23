@@ -681,9 +681,9 @@ $macros-list-height: 200px;
 }
 
 .transition-bar {
-  left: x-pos(20);
+  left: x-pos(20.5);
   top: y-pos(8);
-  width: col-width(1);
+  width: col-width(0.5);
   height: col-height(9);
 }
 
@@ -691,7 +691,7 @@ $macros-list-height: 200px;
   top: y-pos(8);
   left: x-pos(17);
   height: col-height(9);
-  width: col-width(3);
+  width: col-width(3.5);
 }
 
 .state-servers,
