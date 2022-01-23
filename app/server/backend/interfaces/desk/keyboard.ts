@@ -2,7 +2,8 @@ import { ConfigBackend } from "../../engine/config";
 import { iModules } from "../../modules";
 import { MacroEngine } from "../../engine/macros";
 
-import { DeskSerialBoardInterface, LedColor, LedStatus } from "./serial";
+import { DeskSerialBoardInterface } from "./serial";
+import { LedColor, LedStatus } from "./serial-helpers";
 import { DeskKeyboardInterfaceHelpers } from "./keyboard-helper";
 import { TransitionOnairs, TransitionTies } from "../../modules/atem/usk";
 import { Macro } from "../../engine/macros/macro";

@@ -1,7 +1,9 @@
 // Arduino9x_RX
 // -*- mode: C++ -*-
 
-#define SERIAL_DEBUG 1
+#define SERIAL_DEBUG 0
+#define SERIAL_BUFFER_SIZE 128
+#define SERIAL_BUFFER_RX_SIZE 128
 
 #include <arduino.h>
 #include <Adafruit_NeoPixel.h>
@@ -128,6 +130,25 @@ short colPin = 0;
 
 sButtons *buttons;
 Adafruit_NeoPixel strip;
+
+// // Enable and call freeMemory() to debug memory leaks
+// #ifdef __arm__
+// // should use uinstd.h to define sbrk but Due causes a conflict
+// extern "C" char* sbrk(int incr);
+// #else  // __ARM__
+// extern char *__brkval;
+// #endif  // __arm__
+
+// int freeMemory() {
+//   char top;
+// #ifdef __arm__
+//   return &top - reinterpret_cast<char*>(sbrk(0));
+// #elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+//   return &top - __brkval;
+// #else  // __arm__
+//   return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+// #endif  // __arm__
+// }
 
 void fill(short r, short g, short b)
 {
