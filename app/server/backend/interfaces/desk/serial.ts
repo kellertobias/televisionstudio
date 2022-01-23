@@ -102,7 +102,6 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			const msg = data
 				.map((x) => x.toString(16).padStart(2, '0').toUpperCase())
 				.join(',');
-			console.log(`[SERIAL-CLIENT] Send: ${msg}`);
 			this.socket.write(msg);
 		} else {
 			console.log('PORT NOT OPEN');
@@ -166,6 +165,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 				const encoderAddress = row;
 				const encoderDirection = (value & 0b00000011) == 0b00000001 ? -1 : 1;
 
+				console.log(`BTN fader:${row}:${col}=${encoderDirection}`);
 				this.runEventHandlers('encoder', {
 					encoder: encoderAddress,
 					direction: encoderDirection,
@@ -176,6 +176,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 				const faderAddress = row;
 				const faderValue = value;
 
+				console.log(`BTN fader:${row}:${col}=${value}`);
 				this.runEventHandlers('fader', {
 					fader: faderAddress,
 					value: faderValue,
@@ -203,6 +204,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 					console.log(`Cell ${side}:${row}:${col} does not exist.`);
 				}
 
+				console.log(`BTN ${side}:${row}:${col}=${pressed}`);
 				this.runEventHandlers(`button-${side}`, {
 					row,
 					col,
