@@ -1,4 +1,4 @@
-import { Atem, AtemState, Commands } from 'atem-connection';
+import { Atem, Commands } from 'atem-connection';
 
 import { BasicModule } from '../basic-module';
 import { ConfigBackend } from '../../engine/config';
@@ -96,14 +96,14 @@ export class AtemModule extends BasicModule {
 		});
 	}
 
-	onVideoModeChanged(
+	public onVideoModeChanged(
 		handler: (param: {
 			height: number;
 			fps: number;
 			ratio: '16:9' | '4:3';
 			mode: 'i' | 'p';
 		}) => void,
-	) {
+	): void {
 		this.registerEventHandler('video-mode', handler);
 	}
 
@@ -114,13 +114,13 @@ export class AtemModule extends BasicModule {
 		});
 	}
 
-	connect(): Promise<void> {
+	public async connect(): Promise<void> {
 		this.setChannelMap(this.config.generic.channelMap);
 
-		return new Promise<void>((resolve, reject) => {
+		await new Promise<void>((resolve) => {
 			console.log('[ATEM] Connecting...');
 			const switcherConfig = this.config.devices.switcher;
-			if (switcherConfig.ip == undefined) {
+			if (switcherConfig.ip === undefined) {
 				return;
 			}
 			this.client.connect(switcherConfig.ip);
@@ -130,21 +130,14 @@ export class AtemModule extends BasicModule {
 				console.log('[ATEM] Connection Opened');
 				resolve();
 			});
-		})
-			.then(() => {
-				this.allModules.forEach((sub) => sub.setup());
-			})
-			.then(() => {
-				return this.client.setTransitionPosition(1).then(() => {
-					this.client.setTransitionPosition(0).then(() => {});
-				});
-			})
-			.then(() => {
-				return this.setupMultiview(this.channelMap);
-			});
+		});
+		await Promise.all(this.allModules.map((sub) => sub.setup()));
+		await this.client.setTransitionPosition(1);
+		await this.client.setTransitionPosition(0);
+		await this.setupMultiview(this.channelMap);
 	}
 
-	setChannelMap(input: number[]) {
+	public async setChannelMap(input: number[]): Promise<void> {
 		input.forEach((value, index) => {
 			const channel = AtemModule.SOURCEMAP[index];
 			if (!value) {
@@ -160,39 +153,37 @@ export class AtemModule extends BasicModule {
 		if (this.connected) {
 			return this.setupMultiview(input);
 		}
-		return Promise.resolve();
 	}
 
-	setupMultiview(input: number[]) {
+	public async setupMultiview(input: number[]): Promise<void> {
 		// Index 0 and 1 are the big screens
-		return Promise.all(
+		await Promise.all(
 			input.map((channel, index) => {
-				index += 2;
-				const c = new Commands.MultiViewerSourceCommand(0, index, channel);
+				const c = new Commands.MultiViewerSourceCommand(0, index + 2, channel);
 				return this.client.sendCommand(c);
 			}),
-		).then(() => {
-			return Promise.resolve();
-		});
+		);
 	}
 
-	getVideoMode(input: number) {
+	public getVideoMode(input: number): typeof VIDEO_MODES[number] {
 		return VIDEO_MODES[input];
 	}
 
-	getSourceNumber(input: string) {
+	public getSourceNumber(input: string): number {
 		return this.SOURCES[input];
 	}
 
-	getSourceName(input: number) {
+	public getSourceName(input: number): string {
 		return this.SOURCESREV[input];
 	}
 
-	getStyleName(input: number): TransitionStyleNames {
+	public getStyleName(input: number): TransitionStyleNames {
 		return STYLESREV[input] as TransitionStyleNames;
 	}
 
-	getStyleNumber(input: 'DVE' | 'mix' | 'stinger' | 'dip' | 'wipe') {
+	public getStyleNumber(
+		input: 'DVE' | 'mix' | 'stinger' | 'dip' | 'wipe',
+	): number {
 		return STYLES[input];
 	}
 }

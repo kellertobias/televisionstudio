@@ -29,7 +29,7 @@ export class AtemModuleDsk extends AtemSubModule {
 		return Promise.resolve();
 	}
 
-	update(status: AtemState, pathToChange: string[]): Promise<void> {
+	update(status: AtemState): Promise<void> {
 		const allDskStatus = status.video.downstreamKeyers;
 		const dskNames: AtemDskName[] = Object.keys(this.current) as AtemDskName[];
 		dskNames.forEach((key, i) => {
@@ -55,9 +55,9 @@ export class AtemModuleDsk extends AtemSubModule {
 			this.current[key] = nextDsk;
 
 			if (
-				dsk.onair != nextDsk.onair ||
-				dsk.running != nextDsk.running ||
-				dsk.tie != nextDsk.tie
+				dsk.onair !== nextDsk.onair ||
+				dsk.running !== nextDsk.running ||
+				dsk.tie !== nextDsk.tie
 			) {
 				const answer = {
 					dsk: key,
@@ -80,29 +80,33 @@ export class AtemModuleDsk extends AtemSubModule {
 		return Promise.resolve();
 	}
 
-	onRate(
+	public onRate(
 		handler: (param: {
 			dsk: 'dsk1' | 'dsk2' | 'dsk3' | 'dsk4';
 			rate: number;
 		}) => void,
-	) {
+	): void {
 		this.parent.registerEventHandler('dsk-rate', handler);
 	}
 
-	onState(
+	public onState(
 		handler: (param: {
 			dsk: string;
 			running: boolean;
 			onair: boolean;
 			tie: boolean;
 		}) => void,
-	) {
+	): void {
 		this.parent.registerEventHandler('dsk-status', handler);
 	}
 
-	tie = async (params: { dsk: number; enable?: boolean }) => {
-		let { dsk, enable } = params;
-		if (enable == undefined) {
+	public tie = async (params: {
+		dsk: number;
+		enable?: boolean;
+	}): Promise<void> => {
+		const { dsk } = params;
+		let { enable } = params;
+		if (enable === undefined) {
 			const dskKey: AtemDskName = `dsk${dsk}` as AtemDskName;
 			enable = !(this.current[dskKey] as AtemDskState).tie;
 		}
@@ -111,8 +115,12 @@ export class AtemModuleDsk extends AtemSubModule {
 		return this.client.sendCommand(c);
 	};
 
-	onair = async (params: { dsk: number; enable?: boolean }) => {
-		let { dsk, enable } = params;
+	public onair = async (params: {
+		dsk: number;
+		enable?: boolean;
+	}): Promise<void> => {
+		const { dsk } = params;
+		let { enable } = params;
 		if (enable === undefined) {
 			const dskKey: AtemDskName = `dsk${dsk}` as AtemDskName;
 			enable = !(this.current[dskKey] as AtemDskState).onair;
@@ -121,13 +129,16 @@ export class AtemModuleDsk extends AtemSubModule {
 		return this.client.sendCommand(c);
 	};
 
-	rate = async (params: { dsk: number; rate: number }) => {
+	public rate = async (params: {
+		dsk: number;
+		rate: number;
+	}): Promise<void> => {
 		const { dsk, rate } = params;
 		const c = new Commands.DownstreamKeyRateCommand(dsk - 1, rate);
 		return this.client.sendCommand(c);
 	};
 
-	auto = async (params: { dsk: number } | number) => {
+	public auto = async (params: { dsk: number } | number): Promise<void> => {
 		const { dsk } = typeof params === 'object' ? params : { dsk: params };
 		console.log('DSK AUTO', dsk);
 		const c = new Commands.DownstreamKeyAutoCommand(dsk - 1);
