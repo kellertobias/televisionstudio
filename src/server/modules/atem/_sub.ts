@@ -1,5 +1,6 @@
 import { Atem, AtemState } from 'atem-connection';
-import { AtemModule } from '.';
+
+import type { AtemModule } from '.';
 
 export abstract class AtemSubModule {
 	client: Atem;

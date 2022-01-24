@@ -1,5 +1,5 @@
-import { Observable } from '../../helpers/observable';
-import { iModules } from '../../modules';
+import { Observable } from '../../../shared/observable';
+import { IModules } from '../../modules';
 import { ConfigBackend } from '../config';
 import { Macro } from './macro';
 import { MacroStore } from './store';
@@ -10,10 +10,10 @@ export class MacroEngine extends Observable {
 	macros: Macro[] = [];
 	page = 1;
 	master?: Macro;
-	modules: iModules;
+	modules: IModules;
 	config: ConfigBackend;
 
-	constructor(config: ConfigBackend, modules: iModules) {
+	constructor(config: ConfigBackend, modules: IModules) {
 		super();
 		this.modules = modules;
 		this.config = config;

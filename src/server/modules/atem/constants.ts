@@ -1,4 +1,4 @@
-const VIDEO_MODES: {
+export const VIDEO_MODES: {
 	[key: number]: {
 		height: number;
 		fps: number;
@@ -22,20 +22,18 @@ const VIDEO_MODES: {
 	'13': { fps: 59.94, height: 1080, ratio: '16:9', mode: 'p' },
 };
 
-const STYLES: { [key: string]: number } = {
+export const STYLES: { [key: string]: number } = {
 	mix: 0,
 	dip: 1,
 	wipe: 2,
 	DVE: 3,
 };
 
-const STYLESREV: { [key: number]: string } = {};
+export const STYLESREV: { [key: number]: string } = {};
 Object.keys(STYLES).forEach((name: string) => {
 	const index: number = STYLES[name];
 	STYLESREV[index] = name;
 });
 
-const ME = 0;
-const AUXBUS = 0;
-
-export { ME, AUXBUS, STYLES, STYLESREV, VIDEO_MODES };
+export const ME = 0;
+export const AUXBUS = 0;

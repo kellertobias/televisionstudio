@@ -1,26 +1,16 @@
-import { ConfigBackend } from '../engine/config';
-
 import { BasicModule } from './basic-module';
 
 export class SleepModule extends BasicModule {
-	connected: boolean = true;
-	timeouts: NodeJS.Timeout[] = [];
+	public connected = true;
+	private timeouts: NodeJS.Timeout[] = [];
 
-	defaultAction = ['wait'];
+	public readonly defaultAction = ['wait'];
 
-	constructor(config: ConfigBackend) {
-		super(config);
-	}
-
-	async connect() {
+	async connect(): Promise<void> {
 		return Promise.resolve();
 	}
 
-	async updateAll() {
-		return Promise.resolve();
-	}
-
-	abort = async (_params?: {}) => {
+	abort = async (): Promise<void> => {
 		this.timeouts.forEach((t) => {
 			clearTimeout(t);
 		});
@@ -28,9 +18,9 @@ export class SleepModule extends BasicModule {
 	};
 
 	wait = async (params: { time: number } | number): Promise<void> => {
-		const { time } = typeof params == 'object' ? params : { time: params };
+		const { time } = typeof params === 'object' ? params : { time: params };
 
-		return new Promise((resolve, _reject) => {
+		return new Promise((resolve) => {
 			const t = setTimeout(() => {
 				return resolve();
 			}, time * 1000);

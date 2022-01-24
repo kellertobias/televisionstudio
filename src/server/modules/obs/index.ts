@@ -1,6 +1,7 @@
+import OBSWebSocket from 'obs-websocket-js';
+
 import { ConfigBackend } from '../../engine/config';
 import { BasicModule } from '../basic-module';
-import OBSWebSocket from 'obs-websocket-js';
 
 import { ObsModuleAudio } from './audio';
 import { ObsModuleGeneric } from './generic';
@@ -9,19 +10,19 @@ import { ObsModuleStorage } from './storage';
 import { ObsModuleScenes } from './scene';
 
 export class ObsModule extends BasicModule {
-	connected: boolean = false;
-	client: OBSWebSocket;
+	public connected = false;
+	private client: OBSWebSocket;
 
-	scene: ObsModuleScenes;
-	audio: ObsModuleAudio;
-	generic: ObsModuleGeneric;
-	output: ObsModuleOutput;
-	storage: ObsModuleStorage;
+	public scene: ObsModuleScenes;
+	public audio: ObsModuleAudio;
+	public generic: ObsModuleGeneric;
+	public output: ObsModuleOutput;
+	public storage: ObsModuleStorage;
 
-	printedConnectionError = false;
+	private printedConnectionError = false;
 
-	defaultAction = ['scenes', 'set'];
-	connectingTimeout?: NodeJS.Timeout;
+	public readonly defaultAction = ['scenes', 'set'];
+	private connectingTimeout?: NodeJS.Timeout;
 
 	constructor(config: ConfigBackend) {
 		super(config);
@@ -51,11 +52,11 @@ export class ObsModule extends BasicModule {
 		this.storage = new ObsModuleStorage(this, this.client);
 	}
 
-	private _connect = (): Promise<boolean> => {
+	private connectInner = (): Promise<boolean> => {
 		if (this.connectingTimeout !== undefined) {
 			clearTimeout(this.connectingTimeout);
 		}
-		return new Promise<boolean>((resolve, reject) => {
+		return new Promise<boolean>((resolve) => {
 			this.connectingTimeout = setTimeout(() => {
 				if (this.connectingTimeout !== undefined) {
 					clearTimeout(this.connectingTimeout);
@@ -70,10 +71,10 @@ export class ObsModule extends BasicModule {
 						this.printedConnectionError = false;
 						return resolve(true);
 					})
-					.catch((err: any) => {
+					.catch((error: any) => {
 						this.connected = false;
 						if (!this.printedConnectionError) {
-							console.log('[OBS] Error', err);
+							console.log('[OBS] Error', error);
 							this.printedConnectionError = true;
 						}
 						return resolve(false);
@@ -82,33 +83,7 @@ export class ObsModule extends BasicModule {
 		});
 	};
 
-	connect = async () => {
-		return this._connect().then((connected) => {
-			if (connected) return this.setupAll();
-		});
-	};
-
-	waitForConnection = (): Promise<void> => {
-		console.log('[OBS] Wait for Connection');
-		if (this.connected) return Promise.resolve();
-		let resolved = false;
-		return new Promise((resolve, reject) => {
-			this.registerEventHandler('connection-status', (connected) => {
-				if (!connected) return;
-				if (resolved) return;
-				resolved = true;
-				console.log('[OBS] Wait for Connection - Connected');
-				return resolve();
-			});
-		});
-	};
-
-	// Event Handlers
-	onStatus(handler: (params: { connected: boolean }) => void) {
-		this.registerEventHandler('connection-status', handler);
-	}
-
-	setupAll = async () => {
+	private setupAll = async (): Promise<void> => {
 		await this.generic.setup();
 		await this.output.setup();
 		await this.scene.setup();
@@ -117,4 +92,39 @@ export class ObsModule extends BasicModule {
 		console.log('[OBS] Setup Done');
 		return Promise.resolve();
 	};
+
+	public connect = async (): Promise<void> => {
+		return this.connectInner().then((connected) => {
+			if (connected) {
+				return this.setupAll();
+			}
+			return null;
+		});
+	};
+
+	public waitForConnection = (): Promise<void> => {
+		console.log('[OBS] Wait for Connection');
+		if (this.connected) {
+			return Promise.resolve();
+		}
+		let resolved = false;
+		return new Promise((resolve) => {
+			this.registerEventHandler('connection-status', (connected) => {
+				if (!connected) {
+					return;
+				}
+				if (resolved) {
+					return;
+				}
+				resolved = true;
+				console.log('[OBS] Wait for Connection - Connected');
+				return resolve();
+			});
+		});
+	};
+
+	// Event Handlers
+	public onStatus(handler: (params: { connected: boolean }) => void): void {
+		this.registerEventHandler('connection-status', handler);
+	}
 }

@@ -4,7 +4,7 @@ import arrayEquals from '/server/backend/helpers/array-equals';
 
 import { BasicInterface } from './../basic-interface';
 import { ConfigBackend } from '../../engine/config';
-import { iModules } from '../../modules';
+import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
 
 export type LedColor =
@@ -83,7 +83,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 	warnedOfNonexistence = false;
 	config: ConfigBackend;
 
-	constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
+	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
 		super(config, modules, macros);
 		this.config = config;
 	}

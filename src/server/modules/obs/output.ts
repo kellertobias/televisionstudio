@@ -1,75 +1,73 @@
 import { ObsSubModule } from './_sub';
 
-type liveStatus = 'idle' | 'starting' | 'stopping' | 'running';
+type LiveStatus = 'idle' | 'starting' | 'stopping' | 'running';
 
 export class ObsModuleOutput extends ObsSubModule {
-	streaming = false;
-	recording = false;
-	streamDataRate: number | undefined = undefined;
-	streamTime: string | undefined = undefined;
-	recordTime: string | undefined = undefined;
-	droppedFrames: number = 0;
-	folder?: string;
-	streamingServer?: { server: string; key: string };
+	public streaming = false;
+	public recording = false;
 
-	_update() {
-		if (!this.parent.connected) return Promise.resolve();
+	private folder: string;
+	private streamDataRate: number | undefined = undefined;
+	private streamTime: string | undefined = undefined;
+	private recordTime: string | undefined = undefined;
+	private droppedFrames = 0;
+	private streamingServer?: { server: string; key: string };
+
+	private async update() {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
 		let serverChanged = false;
-		return this.getStreamSettings()
-			.then((params) => {
-				if (params) {
-					const { server, key } = params;
-					if (
-						this.streamingServer?.server != server ||
-						this.streamingServer?.key != key
-					) {
-						serverChanged = true;
-						this.streamingServer = { server, key };
-					}
-				}
+		const params = await this.getStreamSettings();
+		if (params) {
+			const { server, key } = params;
+			if (
+				this.streamingServer?.server !== server ||
+				this.streamingServer?.key !== key
+			) {
+				serverChanged = true;
+				this.streamingServer = { server, key };
+			}
+		}
 
-				return this.client.send('GetStreamingStatus');
-			})
-			.then((data) => {
-				const { streaming, recording } = data;
-				const recordTime = data['rec-timecode'];
-				const streamTime = data['stream-timecode'];
+		const streamingState = await this.client.send('GetStreamingStatus');
 
-				if (
-					streaming != this.streaming ||
-					this.streamTime != streamTime ||
-					serverChanged
-				) {
-					this.streamTime = streamTime;
-					this.streaming = streaming;
+		const { streaming, recording } = streamingState;
+		const recordTime = streamingState['rec-timecode'];
+		const streamTime = streamingState['stream-timecode'];
 
-					this.parent.runEventHandlers('stream-status', {
-						status: streaming ? 'running' : 'idle',
-						time: streamTime,
-						skipped: this.droppedFrames,
-						bandwidth: this.streamDataRate,
-						server: this.streamingServer,
-					});
-				}
+		if (
+			streaming !== this.streaming ||
+			this.streamTime !== streamTime ||
+			serverChanged
+		) {
+			this.streamTime = streamTime;
+			this.streaming = streaming;
 
-				if (recording != this.recording || this.recordTime != recordTime) {
-					this.recordTime = recordTime;
-					this.recording = recording;
-
-					this.parent.runEventHandlers('recording-status', {
-						status: recording ? 'running' : 'idle',
-						time: recordTime,
-					});
-				}
-
-				return Promise.resolve();
+			this.parent.runEventHandlers('stream-status', {
+				status: streaming ? 'running' : 'idle',
+				time: streamTime,
+				skipped: this.droppedFrames,
+				bandwidth: this.streamDataRate,
+				server: this.streamingServer,
 			});
+		}
+
+		if (recording !== this.recording || this.recordTime !== recordTime) {
+			this.recordTime = recordTime;
+			this.recording = recording;
+
+			this.parent.runEventHandlers('recording-status', {
+				status: recording ? 'running' : 'idle',
+				time: recordTime,
+			});
+		}
 	}
 
-	setup() {
-		setInterval(() => this._update(), 1000);
+	public setup(): Promise<void> {
+		setInterval(() => this.update(), 1000);
 
-		//Recording
+		// Recording
 		this.client.on('RecordingStarting', () => {
 			this.parent.runEventHandlers('recording-status', {
 				status: 'starting',
@@ -105,83 +103,98 @@ export class ObsModuleOutput extends ObsSubModule {
 			});
 		});
 
-		//Stream Status
-		this.client.on('StreamStatus', (data: any) => {
+		// Stream Status
+		this.client.on('StreamStatus', (data) => {
 			this.streamDataRate = data['kbits-per-sec'];
 			this.droppedFrames = data['num-dropped-frames'];
 		});
 
-		return this._update();
+		return this.update();
 	}
 
-	onStreamChanged(
+	public onStreamChanged(
 		handler: (params: {
-			status: liveStatus;
+			status: LiveStatus;
 			time: number;
 			skipped: number;
 			bandwidth: number;
 			server?: { server: string; key: string };
 		}) => void,
-	) {
+	): void {
 		this.parent.registerEventHandler('stream-status', handler);
 	}
 
-	onRecordingChanged(
-		handler: (params: { status: liveStatus; time: number }) => void,
-	) {
+	public onRecordingChanged(
+		handler: (params: { status: LiveStatus; time: number }) => void,
+	): void {
 		this.parent.registerEventHandler('recording-status', handler);
 	}
 
-	startRecording = async (_params?: {}) => {
-		if (!this.parent.connected) return Promise.resolve();
+	public startRecording = async (): Promise<void> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
 		return this.client.send('StartRecording');
 	};
 
-	endRecording = async (_params?: {}) => {
-		if (!this.parent.connected) return Promise.resolve();
+	public endRecording = async (): Promise<void> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
 		return this.client.send('StopRecording');
 	};
 
-	setFolder = async (params: { folder: string } | string) => {
-		if (!this.parent.connected) return Promise.resolve();
-		const { folder } = typeof params == 'object' ? params : { folder: params };
-		return this.client
-			.send('SetRecordingFolder', {
-				'rec-folder': folder,
-			})
-			.then(() => {
-				this.folder = folder;
-			});
-	};
-
-	getFolder = async (_params?: {}) => {
-		if (!this.parent.connected) return Promise.resolve();
-		return this.client.send('GetRecordingFolder').then((data: any) => {
-			const folder: string = data['rec-folder'];
-			this.folder = folder;
-			return Promise.resolve(folder);
+	public setFolder = async (
+		params: { folder: string } | string,
+	): Promise<void> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
+		const { folder } = typeof params === 'object' ? params : { folder: params };
+		await this.client.send('SetRecordingFolder', {
+			'rec-folder': folder,
 		});
+
+		this.folder = folder;
 	};
 
-	startStream = async (_params?: {}) => {
-		if (!this.parent.connected) return Promise.resolve();
+	public getFolder = async () => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
+		const data = await this.client.send('GetRecordingFolder');
+		const folder: string = data['rec-folder'];
+		this.folder = folder;
+		return folder;
+	};
+
+	public startStream = async (): Promise<void> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
 		return this.client.send('StartStreaming', {});
 	};
 
-	endStream = async (_params?: {}) => {
-		if (!this.parent.connected) return Promise.resolve();
+	public endStream = async (): Promise<void> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
 		return this.client.send('StopStreaming');
 	};
 
-	setStreamSettings = async (params: {
+	public setStreamSettings = async (params: {
 		server: string;
 		key?: string;
 		use_auth?: boolean;
 		username?: string;
 		password?: string;
 		save?: boolean;
-	}) => {
-		if (!this.parent.connected) return Promise.resolve();
+	}): Promise<void> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
+
+		// eslint-disable-next-line @typescript-eslint/naming-convention
 		const { server, key, use_auth, username, password } = params;
 		const save = params.save !== undefined ? params.save : false;
 		return this.client.send('SetStreamSettings', {
@@ -197,10 +210,17 @@ export class ObsModuleOutput extends ObsSubModule {
 		});
 	};
 
-	getStreamSettings = async (_params?: {}) => {
-		if (!this.parent.connected) return Promise.resolve();
-		return this.client.send('GetStreamSettings').then((data) => {
-			return Promise.resolve(data.settings);
-		});
+	public getStreamSettings = async (): Promise<void | {
+		server: string;
+		key: string;
+		use_auth: boolean;
+		username: string;
+		password: string;
+	}> => {
+		if (!this.parent.connected) {
+			return Promise.resolve();
+		}
+		const data = await this.client.send('GetStreamSettings');
+		return data.settings;
 	};
 }

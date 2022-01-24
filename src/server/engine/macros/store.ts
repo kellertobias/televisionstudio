@@ -2,7 +2,7 @@ import _fs from 'fs';
 import yaml from 'js-yaml';
 import { Macro } from './macro';
 import colors from 'colors';
-import { iModules, ModuleNames } from '../../modules/index';
+import { IModules, ModuleNames } from '../../modules/index';
 import { MacroActionDefinition } from './action';
 import { ConfigBackend } from '../config';
 
@@ -18,9 +18,9 @@ export class MacroStore {
 	config: ConfigBackend;
 	//@ts-ignore
 	file!: Promise<fs.FileHandle | undefined>;
-	modules: iModules;
+	modules: IModules;
 
-	constructor(config: ConfigBackend, modules: iModules) {
+	constructor(config: ConfigBackend, modules: IModules) {
 		console.log('Generating Macro Store', config.generic.showfile);
 		this.config = config;
 		this.modules = modules;

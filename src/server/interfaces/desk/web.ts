@@ -3,7 +3,7 @@ import { BasicInterface } from './../basic-interface';
 import { MicroWebsocketServer } from '../../engine/websocket-server';
 import { MacroEngine } from '../../engine/macros';
 import { ConfigBackend, DeviceParameters } from '../../engine/config';
-import { iModules } from '../../modules';
+import { IModules } from '../../modules';
 import { Macro } from '../../engine/macros/macro';
 import { MacroStep } from '../../engine/macros/step';
 import { DeskKeyboardInterface } from './keyboard';
@@ -56,7 +56,7 @@ export class DeskWebInterface extends BasicInterface {
 
 	constructor(
 		config: ConfigBackend,
-		modules: iModules,
+		modules: IModules,
 		macros: MacroEngine,
 		server: MicroWebsocketServer,
 	) {

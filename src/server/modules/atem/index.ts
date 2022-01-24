@@ -14,8 +14,8 @@ import { AtemSubModule } from './_sub';
 type TransitionStyleNames = 'DVE' | 'mix' | 'stinger' | 'dip' | 'wipe';
 
 export class AtemModule extends BasicModule {
-	connected: boolean = false;
-	client: Atem;
+	public connected = false;
+	private client: Atem;
 
 	public mix: AtemModuleMixer;
 	public dsk: AtemModuleDsk;
@@ -23,7 +23,7 @@ export class AtemModule extends BasicModule {
 	public media: AtemModuleMedia;
 	public macro: AtemModuleMacro;
 
-	defaultAction = ['macro', 'run'];
+	public readonly defaultAction = ['macro', 'run'];
 
 	public channelMap: number[] = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -51,7 +51,7 @@ export class AtemModule extends BasicModule {
 
 	private SOURCESREV: { [key: number]: string } = {};
 
-	videoMode: {
+	private videoMode: {
 		height: number;
 		fps: number;
 		ratio: '16:9' | '4:3';
@@ -63,7 +63,7 @@ export class AtemModule extends BasicModule {
 		mode: 'p',
 	};
 
-	_allModules: AtemSubModule[] = [];
+	private allModules: AtemSubModule[] = [];
 
 	constructor(config: ConfigBackend) {
 		super(config);
@@ -78,19 +78,19 @@ export class AtemModule extends BasicModule {
 		this.media = new AtemModuleMedia(this, this.client);
 		this.macro = new AtemModuleMacro(this, this.client);
 
-		this._allModules = [this.mix, this.dsk, this.usk, this.media, this.macro];
+		this.allModules = [this.mix, this.dsk, this.usk, this.media, this.macro];
 
 		this.client.on('stateChanged', (state, pathToChange) => {
-			this._allModules.forEach((sub) => sub.update(state, pathToChange));
+			this.allModules.forEach((sub) => sub.update(state, pathToChange));
 			const videoMode = this.getVideoMode(state.settings.videoMode);
 
 			if (
-				videoMode.height != this.videoMode.height ||
-				videoMode.fps != this.videoMode.fps ||
-				videoMode.mode != this.videoMode.mode ||
-				videoMode.ratio != this.videoMode.ratio
+				videoMode.height !== this.videoMode.height ||
+				videoMode.fps !== this.videoMode.fps ||
+				videoMode.mode !== this.videoMode.mode ||
+				videoMode.ratio !== this.videoMode.ratio
 			) {
-				this.runEventHandlers('video-mode', Object.assign({}, videoMode));
+				this.runEventHandlers('video-mode', { ...videoMode });
 				this.videoMode = videoMode;
 			}
 		});
@@ -120,7 +120,9 @@ export class AtemModule extends BasicModule {
 		return new Promise<void>((resolve, reject) => {
 			console.log('[ATEM] Connecting...');
 			const switcherConfig = this.config.devices.switcher;
-			if (switcherConfig.ip == undefined) return;
+			if (switcherConfig.ip == undefined) {
+				return;
+			}
 			this.client.connect(switcherConfig.ip);
 
 			this.client.on('connected', () => {
@@ -130,7 +132,7 @@ export class AtemModule extends BasicModule {
 			});
 		})
 			.then(() => {
-				this._allModules.forEach((sub) => sub.setup());
+				this.allModules.forEach((sub) => sub.setup());
 			})
 			.then(() => {
 				return this.client.setTransitionPosition(1).then(() => {
@@ -145,7 +147,9 @@ export class AtemModule extends BasicModule {
 	setChannelMap(input: number[]) {
 		input.forEach((value, index) => {
 			const channel = AtemModule.SOURCEMAP[index];
-			if (!value) return;
+			if (!value) {
+				return;
+			}
 			this.channelMap[index] = value;
 			this.SOURCES[channel] = value;
 		});
@@ -153,15 +157,17 @@ export class AtemModule extends BasicModule {
 		this.config.generic.channelMap = this.channelMap;
 
 		this.updateSourcesRev();
-		if (this.connected) return this.setupMultiview(input);
+		if (this.connected) {
+			return this.setupMultiview(input);
+		}
 		return Promise.resolve();
 	}
 
 	setupMultiview(input: number[]) {
-		//Index 0 and 1 are the big screens
+		// Index 0 and 1 are the big screens
 		return Promise.all(
 			input.map((channel, index) => {
-				index = index + 2;
+				index += 2;
 				const c = new Commands.MultiViewerSourceCommand(0, index, channel);
 				return this.client.sendCommand(c);
 			}),

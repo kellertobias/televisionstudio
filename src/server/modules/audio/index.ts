@@ -1,43 +1,32 @@
-import { ConfigBackend } from '../../engine/config';
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { BasicModule } from '../basic-module';
 
 export class AudioModule extends BasicModule {
-	connected: boolean = true;
-	timeouts: NodeJS.Timeout[] = [];
+	public connected = true;
+	private timeouts: NodeJS.Timeout[] = [];
+	defaultAction = ['fadeTo'];
 
-	constructor(config: ConfigBackend) {
-		super(config);
-	}
+	public connect = async (): Promise<void> => {};
 
-	connect = async () => {
-		return Promise.resolve();
-	};
+	public mute = async (
+		params: { channel: string | number } | string | number,
+	): Promise<void> => {};
 
-	updateAll = async () => {
-		return Promise.resolve();
-	};
+	public unmute = async (
+		params: { channel: string | number } | string | number,
+	): Promise<void> => {};
 
-	mute = async (params: { channel: string | number } | string | number) => {
-		return Promise.resolve();
-	};
+	public setVolume = async (params: {
+		channel: string | number;
+		volume: number;
+	}): Promise<void> => {};
 
-	unmute = async (params: { channel: string | number } | string | number) => {
-		return Promise.resolve();
-	};
-
-	setVolume = async (params: { channel: string | number; volume: number }) => {
-		return Promise.resolve();
-	};
-
-	fadeTo = async (params: {
+	public fadeTo = async (params: {
 		channel: string | number;
 		volume: number;
 		time: number;
-	}) => {
-		return Promise.resolve();
-	};
+	}): Promise<void> => {};
 
-	abortFade = async (params: { channel: string }) => {
-		return Promise.resolve();
-	};
+	public abortFade = async (params: { channel: string }): Promise<void> => {};
 }

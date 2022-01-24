@@ -1,7 +1,7 @@
 import { ConfigBackend } from './config';
 import { MacroEngine, MacroStore } from './macros';
 import {
-	iModules,
+	IModules,
 	AtemModule,
 	ObsModule,
 	SleepModule,
@@ -16,7 +16,7 @@ import { DeskTallyInterface } from '../interfaces/desk/tally';
 export class Engine {
 	config: ConfigBackend;
 	macros: MacroEngine;
-	modules: iModules;
+	modules: IModules;
 	interfaces: {
 		desk: {
 			web: DeskWebInterface;

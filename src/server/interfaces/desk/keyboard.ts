@@ -1,5 +1,5 @@
 import { ConfigBackend } from '../../engine/config';
-import { iModules } from '../../modules';
+import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
 import { TransitionOnairs, TransitionTies } from '../../modules/atem/usk';
 import { Macro } from '../../engine/macros/macro';
@@ -27,7 +27,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 	private recordingPressed = false;
 	private streamingPressed = false;
 
-	constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
+	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
 		super(config, modules, macros);
 		this.config = config;
 		this.serial = new DeskSerialBoardInterface(config, modules, macros);

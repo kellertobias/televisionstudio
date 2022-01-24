@@ -1,29 +1,27 @@
-import fetch, { Response } from 'node-fetch';
+import fetch, { BodyInit, Response } from 'node-fetch';
 
 import { ConfigBackend } from '../engine/config';
 
 import { BasicModule } from './basic-module';
 
+/**
+ * This class connects to the Text Generator Module
+ */
 export class TextgenModule extends BasicModule {
-	connected = true;
-	timeouts: NodeJS.Timeout[] = [];
-
-	defaultAction = ['show'];
+	public connected = true;
+	private timeouts: NodeJS.Timeout[] = [];
+	public readonly defaultAction = ['show'];
 
 	constructor(config: ConfigBackend) {
 		super(config);
 		this.config = config;
 	}
 
-	async connect(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	async updateAll(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	private async send(path: string, method: string, body: any) {
+	private async send(
+		path: string,
+		method: string,
+		body: BodyInit | Record<string, unknown>,
+	) {
 		if (typeof body === 'object') {
 			// eslint-disable-next-line no-param-reassign
 			body = JSON.stringify(body);
@@ -36,19 +34,31 @@ export class TextgenModule extends BasicModule {
 				method,
 				body,
 			},
-		).catch((error: any) => {
+		).catch((error: unknown) => {
 			console.log('[TXT] ERROR:', String(error));
 			throw new Error(`TextGen Server Error: ${String(error)}`);
 		});
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	clear = async (_params?: unknown): Promise<Response> => {
+	public async connect(): Promise<void> {
+		return Promise.resolve();
+	}
+
+	/**
+	 * Clear Text from Generator
+	 * @returns
+	 */
+	public clear = async (): Promise<Response> => {
 		return this.send('/text', 'post', { lines: ['', '', ''] });
 	};
 
-	show = async (
-		params: { content?: any; scope?: string } | string,
+	/**
+	 * Show Text Generator Text
+	 * @param params Text Generator Config
+	 * @returns
+	 */
+	public show = async (
+		params: { content?: unknown; scope?: string } | string,
 	): Promise<Response> => {
 		const { content, scope } =
 			typeof params === 'object'

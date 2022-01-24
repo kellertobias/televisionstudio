@@ -1,6 +1,8 @@
 import { AtemState, Commands, Enums } from 'atem-connection';
+
+import arrayEquals from '@/shared/array-equals';
+
 import { AtemSubModule } from './_sub';
-import arrayEquals from '/server/backend/helpers/array-equals';
 
 interface AtemMacro {
 	name: string;
@@ -10,30 +12,32 @@ interface AtemMacro {
 }
 
 export class AtemModuleMacro extends AtemSubModule {
-	current: AtemMacro[] = [];
-	setup(): Promise<void> {
+	public current: AtemMacro[] = [];
+	public setup(): Promise<void> {
 		return Promise.resolve();
 	}
 
-	update(status: AtemState, pathToChange: string[]): Promise<void> {
+	public update(status: AtemState): Promise<void> {
 		const macros = status.macro.macroProperties;
-		const macroPlayer = status.macro.macroPlayer;
+		const { macroPlayer } = status.macro;
 		const runningIndex = macroPlayer.macroIndex;
 
 		const nextState: AtemMacro[] = [];
 
 		macros.forEach((macro, i) => {
-			if (!macro?.isUsed) return null;
+			if (!macro?.isUsed) {
+				return null;
+			}
 			const macroOut: AtemMacro = {
 				name: macro?.name,
 				index: i,
-				running: i == runningIndex && macroPlayer.isRunning,
-				waiting: i == runningIndex && macroPlayer.isWaiting,
+				running: i === runningIndex && macroPlayer.isRunning,
+				waiting: i === runningIndex && macroPlayer.isWaiting,
 			};
 
 			nextState.push(macroOut);
 		});
-		const current = this.current;
+		const { current } = this;
 		this.current = nextState;
 		if (!arrayEquals(nextState, current)) {
 			this.parent.runEventHandlers('macro', { macros: nextState });
@@ -42,28 +46,28 @@ export class AtemModuleMacro extends AtemSubModule {
 		return Promise.resolve();
 	}
 
-	onChange(handler: (param: { macros: AtemMacro[] }) => void) {
+	public onChange(handler: (param: { macros: AtemMacro[] }) => void): void {
 		this.parent.registerEventHandler('macro', handler);
 	}
 
-	_exec = async (
+	private exec = async (
 		params: { macro: number } | number,
 		type: Enums.MacroAction,
 	) => {
-		const { macro } = typeof params == 'object' ? params : { macro: params };
+		const { macro } = typeof params === 'object' ? params : { macro: params };
 		const c = new Commands.MacroActionCommand(macro, type);
 		return this.client.sendCommand(c);
 	};
 
-	run = async (params: { macro: number } | number) => {
-		return this._exec(params, Enums.MacroAction.Run);
+	public run = async (params: { macro: number } | number): Promise<void> => {
+		return this.exec(params, Enums.MacroAction.Run);
 	};
 
-	go = async (params: { macro: number } | number) => {
-		return this._exec(params, Enums.MacroAction.Continue);
+	public go = async (params: { macro: number } | number): Promise<void> => {
+		return this.exec(params, Enums.MacroAction.Continue);
 	};
 
-	stop = async (params: { macro: number } | number) => {
-		return this._exec(params, Enums.MacroAction.Stop);
+	public stop = async (params: { macro: number } | number): Promise<void> => {
+		return this.exec(params, Enums.MacroAction.Stop);
 	};
 }

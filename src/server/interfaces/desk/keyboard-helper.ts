@@ -1,10 +1,10 @@
 import { BasicInterface } from './../basic-interface';
 import { ConfigBackend } from '../../engine/config';
-import { iModules } from '../../modules';
+import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
 
 export abstract class DeskKeyboardInterfaceHelpers extends BasicInterface {
-	constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
+	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
 		super(config, modules, macros);
 	}
 

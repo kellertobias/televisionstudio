@@ -1,4 +1,5 @@
 import { AtemState, Commands } from 'atem-connection';
+
 import { AtemSubModule } from './_sub';
 
 type AtemDskName = 'dsk1' | 'dsk2' | 'dsk3' | 'dsk4';
@@ -68,7 +69,7 @@ export class AtemModuleDsk extends AtemSubModule {
 				this.parent.runEventHandlers('dsk-status', answer);
 			}
 
-			if (dsk.rate != nextDsk.rate) {
+			if (dsk.rate !== nextDsk.rate) {
 				this.parent.runEventHandlers('dsk-rate', {
 					dsk: key,
 					rate: nextDsk.rate,
@@ -112,7 +113,7 @@ export class AtemModuleDsk extends AtemSubModule {
 
 	onair = async (params: { dsk: number; enable?: boolean }) => {
 		let { dsk, enable } = params;
-		if (enable == undefined) {
+		if (enable === undefined) {
 			const dskKey: AtemDskName = `dsk${dsk}` as AtemDskName;
 			enable = !(this.current[dskKey] as AtemDskState).onair;
 		}
@@ -127,7 +128,7 @@ export class AtemModuleDsk extends AtemSubModule {
 	};
 
 	auto = async (params: { dsk: number } | number) => {
-		const { dsk } = typeof params == 'object' ? params : { dsk: params };
+		const { dsk } = typeof params === 'object' ? params : { dsk: params };
 		console.log('DSK AUTO', dsk);
 		const c = new Commands.DownstreamKeyAutoCommand(dsk - 1);
 		return this.client.sendCommand(c);

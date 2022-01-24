@@ -1,13 +1,17 @@
 import { ConfigBackend } from '../engine/config';
-import { Observable } from '../helpers/observable';
+import { Observable } from '../../shared/observable';
 
 export abstract class BasicModule extends Observable {
-	config: ConfigBackend;
+	protected config: ConfigBackend;
+	abstract connected: boolean;
 	constructor(config: ConfigBackend) {
 		super();
 		this.config = config;
 	}
+
+	/**
+	 * Connect this Module to its Service
+	 */
 	abstract connect(): Promise<void>;
-	abstract connected: boolean;
-	abstract defaultAction: string[];
+	abstract readonly defaultAction: string[];
 }

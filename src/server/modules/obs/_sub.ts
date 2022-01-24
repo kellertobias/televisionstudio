@@ -1,9 +1,10 @@
 import OBSWebSocket from 'obs-websocket-js';
-import { ObsModule } from '.';
+
+import type { ObsModule } from '.';
 
 export abstract class ObsSubModule {
-	client: OBSWebSocket;
-	parent: ObsModule;
+	protected client: OBSWebSocket;
+	protected parent: ObsModule;
 	constructor(parent: ObsModule, client: OBSWebSocket) {
 		this.client = client;
 		this.parent = parent;

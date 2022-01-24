@@ -1,7 +1,7 @@
 import { BasicInterface } from './../basic-interface';
 import { MacroEngine } from '../../engine/macros';
 import { ConfigBackend } from '../../engine/config';
-import { iModules } from '../../modules';
+import { IModules } from '../../modules';
 import fetch from 'node-fetch';
 
 export class DeskTallyInterface extends BasicInterface {
@@ -9,7 +9,7 @@ export class DeskTallyInterface extends BasicInterface {
 	config: ConfigBackend;
 	tallyUpdateInterval?: NodeJS.Timeout;
 
-	constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
+	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
 		super(config, modules, macros);
 		this.config = config;
 	}

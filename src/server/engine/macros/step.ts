@@ -1,5 +1,5 @@
 import { MacroAction, MacroActionDefinition } from './action';
-import promiseChain from '../../helpers/promise-serial';
+import promiseChain from '../../../shared/promise-serial';
 import { Macro } from './macro';
 import colors from 'colors';
 

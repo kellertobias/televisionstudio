@@ -1,7 +1,9 @@
 import { AtemState, Commands } from 'atem-connection';
-import { ME } from './constants';
+
+import arrayEquals from '@/shared/array-equals';
+
 import { AtemSubModule } from './_sub';
-import arrayEquals from '/server/backend/helpers/array-equals';
+import { ME } from './constants';
 
 export interface TransitionTies {
 	bg: boolean;
@@ -38,16 +40,16 @@ export class AtemModuleUsk extends AtemSubModule {
 		},
 	};
 
-	_getTies(inp: number, position: number) {
-		return Math.floor(inp / position) % 2 == 1;
+	private getTies(inp: number, position: number) {
+		return Math.floor(inp / position) % 2 === 1;
 	}
 
-	setup(): Promise<void> {
+	public async setup(): Promise<void> {
 		return Promise.resolve();
 	}
 
-	update(status: AtemState, pathToChange: string[]): Promise<void> {
-		const video = status.video;
+	public update(status: AtemState): Promise<void> {
+		const { video } = status;
 		const me = video.mixEffects[0];
 		if (!me) {
 			this.parent.raiseError('No Video Mixer Status in last Message');
@@ -57,11 +59,11 @@ export class AtemModuleUsk extends AtemSubModule {
 		const selection = me.transitionProperties.selection || 1;
 
 		const nextTies = {
-			bg: this._getTies(selection, 1),
-			usk1: this._getTies(selection, 2),
-			usk2: this._getTies(selection, 4),
-			usk3: this._getTies(selection, 8),
-			usk4: this._getTies(selection, 16),
+			bg: this.getTies(selection, 1),
+			usk1: this.getTies(selection, 2),
+			usk2: this.getTies(selection, 4),
+			usk3: this.getTies(selection, 8),
+			usk4: this.getTies(selection, 16),
 		};
 
 		const nextOnair = {
@@ -71,7 +73,7 @@ export class AtemModuleUsk extends AtemSubModule {
 			usk4: me.upstreamKeyers[3]?.onAir || false,
 		};
 
-		const current = this.current;
+		const { current } = this;
 
 		this.current = {
 			ties: nextTies,
@@ -91,35 +93,50 @@ export class AtemModuleUsk extends AtemSubModule {
 		return Promise.resolve();
 	}
 
-	onChange(
+	public onChange(
 		handler: (param: { ties: TransitionTies; onair: TransitionOnairs }) => void,
-	) {
+	): void {
 		this.parent.registerEventHandler('tras-parts', handler);
 	}
 
-	tie = async (params: { usk: number; enable?: boolean }) => {
-		let { usk, enable } = params;
-		const ties = Object.assign({}, this.current.ties);
-		if (usk == 0) {
-			if (enable == undefined) enable = !ties.bg;
+	public tie = async (params: {
+		usk: number;
+		enable?: boolean;
+	}): Promise<void> => {
+		const { usk } = params;
+		let { enable } = params;
+		const ties = { ...this.current.ties };
+		if (usk === 0) {
+			if (enable === undefined) {
+				enable = !ties.bg;
+			}
 			ties.bg = enable;
 		}
 		const uskKey: keyof TransitionOnairs =
 			`usk${usk}` as keyof TransitionOnairs;
-		if (enable == undefined) enable = !ties[uskKey];
+		if (enable === undefined) {
+			enable = !ties[uskKey];
+		}
 		ties[uskKey] = enable;
 
-		const style = this.parent.mix.current.style;
+		const { style } = this.parent.mix.current;
 
-		return this.parent.mix._transitionStyle(style, ties);
+		return this.parent.mix.transitionStyle(style, ties);
 	};
 
-	onair = async (params: { usk: number; enable?: boolean }) => {
-		let { usk, enable } = params;
+	public onair = async (params: {
+		usk: number;
+		enable?: boolean;
+	}): Promise<void> => {
+		const { usk } = params;
+		let { enable } = params;
+
 		const uskKey: keyof TransitionOnairs =
 			`usk${usk}` as keyof TransitionOnairs;
 		const oldValue = this.current.onair[uskKey];
-		if (enable == undefined) enable = !oldValue;
+		if (enable === undefined) {
+			enable = !oldValue;
+		}
 		const c = new Commands.MixEffectKeyOnAirCommand(ME, usk - 1, enable);
 		return this.client.sendCommand(c);
 	};

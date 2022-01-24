@@ -18,6 +18,6 @@
       "@/server/*": ["./*"],
     },
   },
-  "include": ["**/*.ts"],
+  "include": ["**/*.ts", "../shared/promise-wait.ts", "../shared/promise-serial.ts", "../shared/observable.ts", "../shared/array-equals.ts"],
   "references": [{ "path": "../shared" }]
 }

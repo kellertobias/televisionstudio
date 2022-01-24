@@ -23,6 +23,7 @@ module.exports = {
 	rules: {
 		'arrow-body-style': 'off',
 		'consistent-return': 'off',
+		'no-param-reassign': 'warn',
 		'import/extensions': ['error', {
 			js: 'never',
 			ts: 'never',

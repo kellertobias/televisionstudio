@@ -13,7 +13,7 @@ export type AnyModule =
 	| SleepModule
 	| TextgenModule
 	| AudioModule;
-export type iModules = {
+export type IModules = {
 	atem: AtemModule;
 	obs: ObsModule;
 	sleep: SleepModule;

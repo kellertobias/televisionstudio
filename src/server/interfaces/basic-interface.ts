@@ -1,13 +1,13 @@
 import { ConfigBackend } from '../engine/config';
 import { MacroEngine } from '../engine/macros';
-import { Observable } from '../helpers/observable';
-import { iModules } from '../modules';
+import { Observable } from '../../shared/observable';
+import { IModules } from '../modules';
 
 export abstract class BasicInterface extends Observable {
-	modules: iModules;
+	modules: IModules;
 	macros: MacroEngine;
 
-	constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
+	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
 		super();
 		this.modules = modules;
 		this.macros = macros;
