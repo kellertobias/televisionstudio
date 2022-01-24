@@ -1,26 +1,28 @@
-import { MacroStep, MacroStepDefinition } from './step';
 import colors from 'colors';
-import promiseWait from '/server/backend/helpers/promise-wait';
+
+import { sleep } from '@/shared/helpers';
+
+import { MacroStep, MacroStepDefinition } from './step';
 
 export class Macro {
 	name?: string;
-	currentStepNumber: number = 0; // 0=Not started, 1 = First Index
-	currentTriggeredStepNumber: number = 0;
+	currentStepNumber = 0; // 0=Not started, 1 = First Index
+	currentTriggeredStepNumber = 0;
 	currentStep?: MacroStep;
 	loop: boolean;
 	steps: MacroStep[];
-	index: number = -1;
+	index = -1;
 	executor: [number, number] = [0, 0];
-	isMaster: boolean = false;
-	running: boolean = false;
-	waiting: boolean = false;
+	isMaster = false;
+	running = false;
+	waiting = false;
 
 	earliestStepRunning = 0;
 	latestStepRunning = 0;
 
 	runningSteps: { [key: string]: 'trig' | 'run' } = {};
 
-	private updateHandlers: ((...params: any) => void)[] = [];
+	private updateHandlers: ((...params: unknown[]) => void)[] = [];
 
 	constructor(name: string, loop: boolean, steps: MacroStepDefinition[]) {
 		this.name = name;
@@ -43,65 +45,65 @@ export class Macro {
 		});
 	}
 
-	async destroy() {
-		await Promise.all(this.steps.map((step) => step.destroy())).then(
-			(cancelled) => {
-				if (cancelled.some((x) => x)) return promiseWait(20);
-				return Promise.resolve();
-			},
+	public async destroy(): Promise<void> {
+		const cancelled = await Promise.all(
+			this.steps.map((step) => step.destroy()),
 		);
 
-		//@ts-ignore
+		if (cancelled.some((x) => x)) {
+			await sleep(20);
+		}
+
 		this.steps = [];
-		this._executeUpdate();
-		//@ts-ignore
+		this.executeUpdate();
 		this.currentStep = null;
-		//@ts-ignore
 		this.isMaster = false;
 
 		this.updateHandlers = [];
 	}
 
-	onUpdate(handler: (macro: Macro) => void) {
+	public onUpdate(handler: (macro: Macro) => void): void {
 		this.updateHandlers.push(handler);
 	}
 
-	_executeUpdate(str?: string) {
+	public executeUpdate(str?: string): void {
+		if (str) {
+			console.log(str);
+		}
 		this.updateHandlers.forEach((handler) => {
 			handler(this);
 		});
 	}
 
-	setMaster(isMaster: boolean) {
+	public setMaster(isMaster: boolean): void {
 		this.isMaster = isMaster;
 	}
 
-	async reset() {
+	public async reset(): Promise<void> {
 		console.log('[MACRO] RESET');
 		this.currentStepNumber = 0;
 		this.currentStep = undefined;
 		await Promise.all(this.steps.map((step) => step.reset()));
-		this._executeUpdate('RESET');
+		this.executeUpdate('RESET');
 	}
 
-	private _getStep(stepNumber: number) {
+	private getStep(stepNumber: number) {
 		return this.steps[(stepNumber - 1) % this.steps.length];
 	}
 
-	updateMacroState() {
+	updateMacroState(): void {
 		this.running = this.steps.some((step) => step.running);
 		this.waiting =
 			!this.running && this.steps.some((step) => step.triggerAt !== undefined);
 
 		const stepIndexes = Object.keys(this.runningSteps);
-		let fallBackIndex = 0;
+		const fallBackIndex = 0;
 		if (stepIndexes.length > 0) {
 			this.earliestStepRunning = 999999;
 			this.latestStepRunning = 0;
 
-			for (let index = 0; index < stepIndexes.length; index++) {
-				const stepIndexStr = stepIndexes[index];
-				const stepIndex = parseInt(stepIndexStr);
+			for (const stepIndexStr of stepIndexes) {
+				const stepIndex = Number.parseInt(stepIndexStr, 10);
 
 				if (stepIndex <= this.earliestStepRunning) {
 					this.earliestStepRunning = stepIndex;
@@ -110,10 +112,12 @@ export class Macro {
 					this.latestStepRunning = stepIndex;
 				}
 			}
-			if (this.earliestStepRunning == 999999)
+			if (this.earliestStepRunning === 999999) {
 				this.earliestStepRunning = Math.max(fallBackIndex, 0);
-			if (this.latestStepRunning == 999999)
+			}
+			if (this.latestStepRunning === 999999) {
 				this.latestStepRunning = Math.max(fallBackIndex, 0);
+			}
 		}
 	}
 
@@ -122,20 +126,19 @@ export class Macro {
 			const cancelStepsPromise: Promise<boolean>[] = this.steps.map((step) =>
 				step.reset(),
 			);
-			await Promise.all(cancelStepsPromise).then((cancelled) => {
-				if (cancelled.some((x) => x)) return promiseWait(20);
-				return Promise.resolve();
-			});
+			const cancelled = await Promise.all(cancelStepsPromise);
+			if (cancelled.some((x) => x)) {
+				return sleep(20);
+			}
 		}
-		return;
 	}
 
 	async execute(
 		stepNumber: number,
 		isManual: boolean,
 	): Promise<false | number> {
-		//Check if this step exists
-		let triggerStepNumber = stepNumber;
+		// Check if this step exists
+		const triggerStepNumber = stepNumber;
 		if (stepNumber > this.steps.length && !this.loop) {
 			if (isManual) {
 				throw new Error(`No Such Step: ${stepNumber} / ${this.steps.length}`);
@@ -147,8 +150,8 @@ export class Macro {
 		// If we execute manually, we abort all running steps
 		this.cancelRunningIfManual(isManual);
 
-		//Get the Step to execute
-		const stepCandidate = this._getStep(triggerStepNumber);
+		// Get the Step to execute
+		const stepCandidate = this.getStep(triggerStepNumber);
 
 		// Get the Trigger timer
 		const willTrigger = stepCandidate.getTrigger(isManual);
@@ -166,96 +169,101 @@ export class Macro {
 			),
 		);
 
-		//Update before Starting the Trigger. Time is already set.
-		this._executeUpdate();
+		// Update before Starting the Trigger. Time is already set.
+		this.executeUpdate();
 
 		// Now that we will trigger, we set the last triggered step number to the current step.
 		this.currentTriggeredStepNumber = triggerStepNumber;
 		this.runningSteps[`${triggerStepNumber}`] = 'trig';
-		return triggerTimer().then(
-			(cancelled: boolean): Promise<false | number> => {
-				if (cancelled) {
-					console.log(
-						colors.yellow.bold(
-							`[MACRO] ${isManual ? 'MAN-' : 'FOL-'}EXEC ${
-								this.executor
-							}: - STEP ${triggerStepNumber} GOT CANCELLED`,
-						),
-					);
-					this._executeUpdate();
-					return Promise.resolve<false>(false);
-				}
+		const cancelled = await triggerTimer();
 
-				this.updateMacroState();
+		if (cancelled) {
+			console.log(
+				colors.yellow.bold(
+					`[MACRO] ${isManual ? 'MAN-' : 'FOL-'}EXEC ${
+						this.executor
+					}: - STEP ${triggerStepNumber} GOT CANCELLED`,
+				),
+			);
+			this.executeUpdate();
+			return Promise.resolve<false>(false);
+		}
 
-				// We will now execute the step, therefor the current step number
-				// is now the step we are about to execute.
-				this.currentStepNumber = triggerStepNumber;
-				this.currentStep = stepCandidate;
+		this.updateMacroState();
 
-				// this updates the step internally and allows us to set stuff on the outside
-				console.log(
-					colors.green.bold(
-						`[MACRO] ${isManual ? 'MAN-' : 'FOL-'} RUN ${
-							this.executor
-						}: - STEP ${this.currentStepNumber} => ${triggerStepNumber}`,
-					),
-				);
-				const execute = stepCandidate.getExecuter();
-				this.runningSteps[`${triggerStepNumber}`] = 'run';
-				this.updateMacroState();
+		// We will now execute the step, therefor the current step number
+		// is now the step we are about to execute.
+		this.currentStepNumber = triggerStepNumber;
+		this.currentStep = stepCandidate;
 
-				// We are about to trigger the step, update UI
-				this._executeUpdate();
-				execute().then((resetFinishedStep) => {
-					console.log(
-						colors.cyan.bold(
-							`[MACRO]     DONE ${this.executor}: - STEP ${triggerStepNumber} - IS ON ${this.currentStepNumber}`,
-						),
-					);
-
-					delete this.runningSteps[`${triggerStepNumber}`];
-					this.updateMacroState();
-
-					if (
-						!this.currentStep?.running &&
-						this.currentTriggeredStepNumber > this.currentStepNumber
-					) {
-						this.currentStepNumber = this.currentTriggeredStepNumber;
-						this.currentStep = this._getStep(this.currentTriggeredStepNumber);
-					}
-
-					//Now update the UI
-					this._executeUpdate();
-
-					//Now set the step to be finished
-					resetFinishedStep();
-					this.updateMacroState();
-				});
-
-				return Promise.resolve<number>(stepNumber + 1);
-			},
+		// this updates the step internally and allows us to set stuff on the outside
+		console.log(
+			colors.green.bold(
+				`[MACRO] ${isManual ? 'MAN-' : 'FOL-'} RUN ${this.executor}: - STEP ${
+					this.currentStepNumber
+				} => ${triggerStepNumber}`,
+			),
 		);
+		const execute = await stepCandidate.getExecutor();
+		this.runningSteps[`${triggerStepNumber}`] = 'run';
+		this.updateMacroState();
+
+		// We are about to trigger the step, update UI
+		this.executeUpdate();
+		const resetFinishedStep = await execute();
+		console.log(
+			colors.cyan.bold(
+				`[MACRO]     DONE ${this.executor}: - STEP ${triggerStepNumber} - IS ON ${this.currentStepNumber}`,
+			),
+		);
+
+		delete this.runningSteps[`${triggerStepNumber}`];
+		this.updateMacroState();
+
+		if (
+			!this.currentStep?.running &&
+			this.currentTriggeredStepNumber > this.currentStepNumber
+		) {
+			this.currentStepNumber = this.currentTriggeredStepNumber;
+			this.currentStep = this.getStep(this.currentTriggeredStepNumber);
+		}
+
+		// Now update the UI
+		this.executeUpdate();
+
+		// Now set the step to be finished
+		resetFinishedStep();
+		this.updateMacroState();
+
+		return Promise.resolve<number>(stepNumber + 1);
 	}
 
-	async go(isManual: boolean | undefined, specificStepNumber?: number) {
-		if (isManual === undefined) isManual = true;
-		//Check if we have steps at all
-		if (this.steps.length == 0) throw new Error('Cannot GO empty Macros');
+	public async go(
+		isManual: boolean | undefined,
+		specificStepNumber?: number,
+	): Promise<void> {
+		if (isManual === undefined) {
+			isManual = true;
+		}
+		// Check if we have steps at all
+		if (this.steps.length === 0) {
+			throw new Error('Cannot GO empty Macros');
+		}
 		const triggerStepNumber =
 			specificStepNumber !== undefined
 				? specificStepNumber
 				: this.currentStepNumber + 1;
-		return this.execute(triggerStepNumber, isManual).then((nextStep) => {
-			if (nextStep === false) {
-				console.log(
-					colors.grey(
-						`[MACRO] END OF AUTOMATIC EXECUTION GO SECTION: ${this.executor}`,
-					),
-				);
-				return;
-			}
-			this.go(false, nextStep);
-		});
+
+		const nextStep = await this.execute(triggerStepNumber, isManual);
+
+		if (nextStep === false) {
+			console.log(
+				colors.grey(
+					`[MACRO] END OF AUTOMATIC EXECUTION GO SECTION: ${this.executor}`,
+				),
+			);
+			return;
+		}
+		this.go(false, nextStep);
 	}
 }

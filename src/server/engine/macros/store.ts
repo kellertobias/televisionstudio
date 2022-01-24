@@ -1,22 +1,21 @@
-import _fs from 'fs';
+import { promises as fs } from 'fs';
+
 import yaml from 'js-yaml';
-import { Macro } from './macro';
 import colors from 'colors';
-import { IModules, ModuleNames } from '../../modules/index';
-import { MacroActionDefinition } from './action';
+
+import { IModules, ModuleNames } from '../../modules';
 import { ConfigBackend } from '../config';
 
-const fs = _fs.promises;
-
-const defaultEncoding = { encoding: 'utf8' };
+import { MacroActionDefinition } from './action';
+import { Macro } from './macro';
 
 export class MacroStore {
-	initialized: boolean = false;
+	initialized = false;
 	configFilesLocation!: string;
 
 	macros: Macro[] = [];
 	config: ConfigBackend;
-	//@ts-ignore
+
 	file!: Promise<fs.FileHandle | undefined>;
 	modules: IModules;
 
@@ -26,35 +25,33 @@ export class MacroStore {
 		this.modules = modules;
 	}
 
-	async init() {
+	public async init(): Promise<void> {
 		this.configFilesLocation =
 			this.config.generic.showfile || this.config.showfile;
-		this.file = fs
-			.open(`${this.configFilesLocation}`, 'a+', 0o666)
-			.catch((err) => {
-				console.log(err);
-				return Promise.resolve(undefined);
-			});
 
-		return this.load().then(() => {
-			this.initialized = true;
-			return Promise.resolve();
-		});
+		try {
+			this.file = fs.open(`${this.configFilesLocation}`, 'a+', 0o666);
+		} catch (error) {
+			console.log(error);
+		}
+
+		await this.load();
+		this.initialized = true;
 	}
 
-	async destroy() {
-		this.macros.forEach(async (macro) => {
-			await macro.destroy();
-		});
+	public async destroy(): Promise<void> {
+		await Promise.all(
+			this.macros.map(async (macro) => {
+				await macro.destroy();
+			}),
+		);
 		this.initialized = false;
 
-		// @ts-ignore
 		this.macros = null;
-		// @ts-ignore
 		this.modules = null;
 	}
 
-	buildMacro(macroObj: any) {
+	private buildMacro(macroObj: any) {
 		const macro = new Macro(
 			macroObj.name,
 			macroObj.loopable,
@@ -68,7 +65,9 @@ export class MacroStore {
 						const key = Object.keys(action || {})[0] || '';
 						let actionPath = key.split('::');
 						const moduleName = actionPath.shift();
-						if (!moduleName) throw new Error('Syntax Error in Action.');
+						if (!moduleName) {
+							throw new Error('Syntax Error in Action.');
+						}
 
 						const params = action[key];
 
@@ -76,10 +75,13 @@ export class MacroStore {
 							moduleName.toLowerCase() as ModuleNames;
 
 						const moduleObj = this.modules[verifiedModuleName];
-						if (!moduleObj)
-							throw new Error('No Such Module: ' + verifiedModuleName);
+						if (!moduleObj) {
+							throw new Error(`No Such Module: ${verifiedModuleName}`);
+						}
 
-						if (actionPath.length == 0) actionPath = moduleObj.defaultAction;
+						if (actionPath.length === 0) {
+							actionPath = moduleObj.defaultAction;
+						}
 
 						const macroAction: MacroActionDefinition = {
 							mod: moduleObj,
@@ -97,82 +99,80 @@ export class MacroStore {
 		return macro;
 	}
 
-	load() {
+	public async load(): Promise<void> {
 		console.log(colors.yellow.bold(`[SHOWFILE] Loading`));
-		return this.file
-			.then((handle) => {
-				if (!handle) return Promise.resolve(undefined);
-				return handle.readFile(defaultEncoding);
-			})
-			.then((contents) => {
-				try {
-					if (!contents) {
-						console.log(
-							colors.red.bold('[SHOWFILE] Could not Load: Showfile is empty'),
-							contents,
-						);
-						this.config.showfileTitle = 'Empty';
-						return Promise.resolve();
-					}
+		const handle = await this.file;
 
-					// @ts-ignore
-					const obj = yaml.safeLoad(contents);
-					console.log(
-						colors.yellow.bold(
-							`[SHOWFILE] YAML File Loaded. Checking Structure…`,
-						),
-					);
-					if (typeof obj !== 'object') {
-						console.log(
-							colors.red.bold(`[SHOWFILE] Could not Load: Structure is Wrong`),
-						);
-						throw Error('Showfile: Must be Object on Top Level');
-					}
+		if (!handle) {
+			return Promise.resolve();
+		}
+		const contents = await handle.readFile({ encoding: 'utf8' });
+		try {
+			if (!contents) {
+				console.log(
+					colors.red.bold('[SHOWFILE] Could not Load: Showfile is empty'),
+					contents,
+				);
+				this.config.showfileTitle = 'Empty';
+				return;
+			}
 
-					if (!Array.isArray(obj.macros)) {
-						console.log(
-							colors.red.bold(`[SHOWFILE] Could not Load: Macros missing`),
-						);
-						throw Error('Showfile: Must Contain macros array');
-					}
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-ignore
+			const obj = yaml.safeLoad(contents);
+			console.log(
+				colors.yellow.bold(`[SHOWFILE] YAML File Loaded. Checking Structure…`),
+			);
 
-					this.config.showfileTitle = obj.title;
+			if (typeof obj !== 'object') {
+				console.log(
+					colors.red.bold(`[SHOWFILE] Could not Load: Structure is Wrong`),
+				);
+				throw new Error('Showfile: Must be Object on Top Level');
+			}
 
-					if (obj?.obs?.scenefile) {
-						this.modules.obs.waitForConnection().then(() => {
-							this.modules.obs.storage.setSceneCollection(obj.obs.scenefile);
-						});
-					} else {
-						console.log(
-							colors.yellow.bold(`[SHOWFILE] No OBS Scene Collection assigned`),
-						);
-					}
+			if (!Array.isArray(obj.macros)) {
+				console.log(
+					colors.red.bold(`[SHOWFILE] Could not Load: Macros missing`),
+				);
+				throw new Error('Showfile: Must Contain macros array');
+			}
 
-					try {
-						console.log('LOADING:', obj);
-						this.macros = obj.macros.map((macroObj: any) => {
-							return this.buildMacro(macroObj);
-						});
-						console.log(colors.yellow.bold(`[SHOWFILE] Loaded.`));
-						return Promise.resolve();
-					} catch (error) {
-						console.log(colors.red.bold(`[SHOWFILE] Loading Macros`), error);
-					}
-				} catch (error) {
-					const mark = error.mark;
-					if (!mark) {
-						console.log(
-							colors.red.bold(`[SHOWFILE] Error Parsing Macro File: ${error}`),
-						);
-					} else {
-						console.log(
-							colors.red.bold(
-								`[SHOWFILE] Error Parsing Macro File: Line ${mark.line}:${mark.column}\n       ${error.reason}`,
-							),
-						);
-					}
-					console.log('ERROR KEYS:', Object.keys(error));
-				}
-			});
+			this.config.showfileTitle = obj.title;
+
+			if (obj?.obs?.scenefile) {
+				await this.modules.obs.waitForConnection();
+				await this.modules.obs.storage.setSceneCollection(obj.obs.scenefile);
+			} else {
+				console.log(
+					colors.yellow.bold(`[SHOWFILE] No OBS Scene Collection assigned`),
+				);
+			}
+
+			try {
+				console.log('LOADING:', obj);
+				this.macros = obj.macros.map((macroObj: any) => {
+					return this.buildMacro(macroObj);
+				});
+				console.log(colors.yellow.bold(`[SHOWFILE] Loaded.`));
+				return;
+			} catch (error) {
+				console.log(colors.red.bold(`[SHOWFILE] Loading Macros`), error);
+			}
+		} catch (error) {
+			const { mark } = error;
+			if (!mark) {
+				console.log(
+					colors.red.bold(`[SHOWFILE] Error Parsing Macro File: ${error}`),
+				);
+			} else {
+				console.log(
+					colors.red.bold(
+						`[SHOWFILE] Error Parsing Macro File: Line ${mark.line}:${mark.column}\n       ${error.reason}`,
+					),
+				);
+			}
+			console.log('ERROR KEYS:', Object.keys(error));
+		}
 	}
 }

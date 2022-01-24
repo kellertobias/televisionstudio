@@ -1,28 +1,30 @@
-import { MacroAction, MacroActionDefinition } from './action';
-import promiseChain from '../../../shared/promise-serial';
-import { Macro } from './macro';
 import colors from 'colors';
 
-type tTrigger = 'GO' | number;
+import promiseChain from '../../../shared/promise-serial';
+
+import type { Macro } from './macro';
+import { MacroAction, MacroActionDefinition } from './action';
+
+type TTrigger = 'GO' | number;
 
 export interface MacroStepDefinition {
 	stepNumber: number;
 	name: string;
 	duration: number;
-	trigger: tTrigger;
+	trigger: TTrigger;
 	actions: MacroActionDefinition[];
 }
 
 export class MacroStep {
 	name: string;
 	stepNumber: number;
-	running: boolean = false;
-	done: boolean = false;
+	running = false;
+	done = false;
 	duration: number;
 	started: Date | undefined = undefined;
 	triggerAt: Date | undefined = undefined;
-	cancelled: boolean = false;
-	trigger: tTrigger;
+	cancelled = false;
+	trigger: TTrigger;
 	actions: MacroAction[];
 	macro: Macro;
 
@@ -36,7 +38,7 @@ export class MacroStep {
 		stepNumber: number,
 		name: string,
 		duration: number,
-		trigger: tTrigger,
+		trigger: TTrigger,
 		actions: MacroActionDefinition[],
 		macro: Macro,
 	) {
@@ -62,20 +64,17 @@ export class MacroStep {
 		this.duration = Math.max(duration, actionDuration);
 	}
 
-	async destroy() {
+	public async destroy(): Promise<void> {
 		this.reset();
-		//@ts-ignore
+
 		this.macro = null;
-		//@ts-ignore
 		this.prev = null;
-		//@ts-ignore
 		this.actions = [];
-		//@ts-ignore
 		this.onCancel = null;
 	}
 
-	reset() {
-		const cancelled = this.onCancel !== undefined ? true : false;
+	public reset(): Promise<boolean> {
+		const cancelled = this.onCancel !== undefined;
 		if (this.onCancel) {
 			this.onCancel();
 		}
@@ -101,43 +100,42 @@ export class MacroStep {
 		return Promise.resolve(cancelled);
 	}
 
-	getExecuter() {
+	public async getExecutor(): Promise<() => Promise<() => void>> {
 		this.running = true;
 		this.done = false;
 		this.started = new Date();
-		return () => {
-			return promiseChain(
+		return async () => {
+			await promiseChain(
 				false,
-				this.actions.map((action, index) => {
+				this.actions.map((action) => {
 					return (cancelled) => action.execute(cancelled);
 				}),
-			).then((_cancelled: boolean) => {
-				this.running = false;
-				this.cancelled = false;
-				this.done = true;
-				this.started = undefined;
+			);
+			this.running = false;
+			this.cancelled = false;
+			this.done = true;
+			this.started = undefined;
 
-				return Promise.resolve(() => {
-					this.started = undefined;
-					this.triggerAt = undefined;
-					this.running = false;
-					this.done = false;
-				});
-			});
+			return () => {
+				this.started = undefined;
+				this.triggerAt = undefined;
+				this.running = false;
+				this.done = false;
+			};
 		};
 	}
 
-	getTrigger(isManual: boolean): false | (() => Promise<boolean>) {
+	public getTrigger(isManual: boolean): false | (() => Promise<boolean>) {
 		if (this.done) {
 			console.log('>>> Step was already done. Cannot trigger');
 			return false;
 		}
 
-		if (this.trigger == 'GO' && !isManual) {
+		if (this.trigger === 'GO' && !isManual) {
 			return false;
 		}
 
-		if (this.trigger == 'GO' || isManual) {
+		if (this.trigger === 'GO' || isManual) {
 			return () => Promise.resolve(false);
 		}
 
@@ -153,12 +151,12 @@ export class MacroStep {
 
 		const triggerTime = this.trigger;
 
-		this.triggerAt = new Date(new Date().getTime() + 1000 * this.trigger);
+		this.triggerAt = new Date(Date.now() + 1000 * this.trigger);
 
-		return () => {
-			return new Promise<boolean>((resolve, _reject) => {
+		return async () => {
+			const cancelled = await new Promise<boolean>((resolve) => {
 				this.onCancel = () => {
-					if (this.triggerTimeout != undefined) {
+					if (this.triggerTimeout !== undefined) {
 						clearTimeout(this.triggerTimeout);
 						this.triggerTimeout = undefined;
 					}
@@ -168,22 +166,22 @@ export class MacroStep {
 				this.triggerTimeout = setTimeout(() => {
 					return resolve(false);
 				}, triggerTime * 1000);
-			}).then((cancelled) => {
-				if (this.triggerTimeout != undefined) {
-					clearTimeout(this.triggerTimeout);
-					this.triggerTimeout = undefined;
-				}
-				if (this.onCancel && cancelled) {
-					console.log(
-						colors.yellow(
-							`[STEP] ${this.macro.executor} STEP ${this.stepNumber} TRIGGER-TIMER CANCELLED`,
-						),
-					);
-				}
-				this.onCancel = undefined;
-
-				return Promise.resolve(cancelled);
 			});
+
+			if (this.triggerTimeout !== undefined) {
+				clearTimeout(this.triggerTimeout);
+				this.triggerTimeout = undefined;
+			}
+
+			if (this.onCancel && cancelled) {
+				console.log(
+					colors.yellow(
+						`[STEP] ${this.macro.executor} STEP ${this.stepNumber} TRIGGER-TIMER CANCELLED`,
+					),
+				);
+			}
+			this.onCancel = undefined;
+			return cancelled;
 		};
 	}
 }

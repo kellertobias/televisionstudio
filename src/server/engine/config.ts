@@ -1,7 +1,8 @@
-import seri from 'seri';
 import _fs from 'fs';
-import sanitizeFilename from 'sanitize-filename';
 import path from 'path';
+
+import seri from 'seri';
+import sanitizeFilename from 'sanitize-filename';
 
 const fs = _fs.promises;
 
@@ -15,8 +16,16 @@ export interface DeviceParameters {
 	dev?: string;
 }
 
+export const deviceParametersTypes = {
+	ip: 'string',
+	port: 'number',
+	enabled: 'boolean',
+	usagePort: 'number',
+	dev: 'string',
+};
+
 export class ConfigBackend {
-	initialized: boolean = false;
+	initialized = false;
 	configFilesLocation: string;
 	showFilesLocation: string;
 	showfileTitle?: string;
@@ -92,7 +101,7 @@ export class ConfigBackend {
 		};
 	}
 
-	async listShowFiles(subpath: string[]) {
+	async listShowFiles(subpath: string[]): Promise<unknown> {
 		return new Promise((resolve, reject) => {
 			const basepath = this.showFilesLocation;
 			const sanitzedSubpath = subpath

@@ -1,5 +1,3 @@
-import { ConfigBackend } from './config';
-import { MacroEngine, MacroStore } from './macros';
 import {
 	IModules,
 	AtemModule,
@@ -12,6 +10,9 @@ import {
 import { WebApi } from '../interfaces/web-api';
 import { DeskWebInterface } from '../interfaces/desk/web';
 import { DeskTallyInterface } from '../interfaces/desk/tally';
+
+import { ConfigBackend } from './config';
+import { MacroEngine } from './macros';
 
 export class Engine {
 	config: ConfigBackend;
@@ -62,13 +63,13 @@ export class Engine {
 		};
 	}
 
-	stop() {
+	public stop(): void {
 		console.log('[ENGINE] Stopping Engine');
 		this.servers.web.shutdown();
 		Object.values(this.interfaces.desk).forEach((inter) => inter.shutdown());
 	}
 
-	start() {
+	public async start(): Promise<void> {
 		console.log(
 			'========================================================================',
 		);
@@ -77,35 +78,28 @@ export class Engine {
 			'========================================================================',
 		);
 
-		Promise.resolve()
-			.then(() => {
-				return this.config.init();
-			})
-			.then(() => {
-				return this.macros.init();
-			})
-			.then(() => {
-				Object.values(this.modules).forEach((inter) => inter.connect());
-			})
-			.then(() => {
-				console.log('[ENGINE] Starting User Interfaces');
-				//Initialize Interfaces
-				this.servers.web.connect();
-			})
-			.then(() => {
-				Object.values(this.interfaces.desk).forEach((inter) => inter.connect());
-			})
-			.then(() => {
-				Object.values(this.interfaces.desk).forEach((inter) => inter.setup());
-			})
-			.then(() => {
-				console.log(
-					'========================================================================',
-				);
-				console.log('[ENGINE] DONE LOADING...');
-				console.log(
-					'========================================================================',
-				);
-			});
+		await this.config.init();
+		await this.macros.init();
+		await Promise.all(
+			Object.values(this.modules).map((inter) => inter.connect()),
+		);
+		console.log('[ENGINE] Starting User Interfaces');
+
+		// Initialize Interfaces
+		await this.servers.web.connect();
+		await Promise.all(
+			Object.values(this.interfaces.desk).map((inter) => inter.connect()),
+		);
+		await Promise.all(
+			Object.values(this.interfaces.desk).map((inter) => inter.setup()),
+		);
+
+		console.log(
+			'========================================================================',
+		);
+		console.log('[ENGINE] DONE LOADING...');
+		console.log(
+			'========================================================================',
+		);
 	}
 }

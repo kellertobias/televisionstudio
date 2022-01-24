@@ -1,6 +1,7 @@
 import { Observable } from '../../../shared/observable';
 import { IModules } from '../../modules';
 import { ConfigBackend } from '../config';
+
 import { Macro } from './macro';
 import { MacroStore } from './store';
 
@@ -22,7 +23,9 @@ export class MacroEngine extends Observable {
 	}
 
 	private getMacroIndex(executorNumber: number) {
-		if (executorNumber == 0) return this.master?.index || 0;
+		if (executorNumber === 0) {
+			return this.master?.index || 0;
+		}
 		return this.PAGE_SIZE * (this.page - 1) + (executorNumber - 1);
 	}
 
@@ -34,73 +37,72 @@ export class MacroEngine extends Observable {
 
 	private isOnPage(macroNumber: number) {
 		const [page] = this.getMacroExecutor(macroNumber);
-		return page == this.page;
+		return page === this.page;
 	}
 
-	getMacro(executorNumber: number) {
+	public getMacro(executorNumber: number): Macro {
 		const index = this.getMacroIndex(executorNumber);
 		const macro = this.macros[index];
 
 		return macro;
 	}
 
-	loadMacroStore() {
+	public async loadMacroStore(): Promise<void> {
 		if (this.macroStore === undefined) {
 			this.macroStore = new MacroStore(this.config, this.modules);
 			return;
 		}
-		this.macroStore
-			.destroy()
-			.then(() => {
-				this.macroStore = new MacroStore(this.config, this.modules);
-			})
-			.then(() => {
-				return this.init();
-			})
-			.then(() => {
-				console.log('MACRO STORE RELOADED');
-			});
+
+		await this.macroStore.destroy();
+		this.macroStore = new MacroStore(this.config, this.modules);
+		this.init();
+
+		console.log('MACRO STORE RELOADED');
 	}
 
-	init() {
-		return this.macroStore.init().then(() => {
-			this.macros = this.macroStore.macros;
-			this.master = this.macros[0];
-			if (this.master) this.master.isMaster = true;
+	public async init(): Promise<void> {
+		await this.macroStore.init();
+		this.macros = this.macroStore.macros;
+		[this.master] = this.macros;
 
-			this.macros.forEach((macro, index) => {
-				macro.index = index;
-				macro.executor = this.getMacroExecutor(index);
-				macro.onUpdate((_macro) => {
-					this.singleMacroChangedHandler(macro, index);
-				});
-				macro._executeUpdate();
+		if (this.master) {
+			this.master.isMaster = true;
+		}
+
+		this.macros.forEach((macro, index) => {
+			macro.index = index;
+			macro.executor = this.getMacroExecutor(index);
+			macro.onUpdate((macro_) => {
+				this.singleMacroChangedHandler(macro_);
 			});
+			macro.executeUpdate();
 		});
 	}
 
-	onMacroChange(handler: (param: { macro: Macro }) => void) {
+	public onMacroChange(handler: (param: { macro: Macro }) => void): void {
 		this.registerEventHandler('macro', handler);
 	}
 
-	onExecutorChange(
+	public onExecutorChange(
 		handler: (param: {
 			macro: Macro;
 			pageNumber: number;
 			executorNumber: number;
 		}) => void,
-	) {
+	): void {
 		this.registerEventHandler('executor', handler);
 	}
 
-	onMasterExecutorChange(handler: (param: { macro: Macro }) => void) {
+	public onMasterExecutorChange(
+		handler: (param: { macro: Macro }) => void,
+	): void {
 		this.registerEventHandler('master', handler);
 	}
 
-	private singleMacroChangedHandler(macro: Macro, _index: number) {
+	private singleMacroChangedHandler(macro: Macro) {
 		if (this.isOnPage(macro.index)) {
 			this.runEventHandlers('executor', {
-				macro: macro,
+				macro,
 				pageNumber: macro.executor[0],
 				executorNumber: macro.executor[1],
 			});
@@ -108,12 +110,12 @@ export class MacroEngine extends Observable {
 
 		if (this.master === macro) {
 			this.runEventHandlers('master', {
-				macro: macro,
+				macro,
 			});
 		}
 
 		this.runEventHandlers('macro', {
-			macro: macro,
+			macro,
 		});
 	}
 
@@ -138,7 +140,7 @@ export class MacroEngine extends Observable {
 		}
 	}
 
-	getCurrentPageExecutors() {
+	public getCurrentPageExecutors(): Macro[] {
 		const pageStart = this.PAGE_SIZE * (this.page - 1);
 		const pageEnd = pageStart + this.PAGE_SIZE;
 		const executors = this.macros.slice(pageStart, pageEnd);
@@ -146,22 +148,24 @@ export class MacroEngine extends Observable {
 		return executors;
 	}
 
-	selectMaster(params: { macroIndex: number } | { executorIndex: number }) {
-		let index: number;
+	public selectMaster(
+		params: { macroIndex: number } | { executorIndex: number },
+	): void {
 		const paramsMacroIndex = params as { macroIndex: number };
 		const paramsExecIndex = params as { executorIndex: number };
-		if (paramsExecIndex.executorIndex !== undefined) {
-			index = this.getMacroIndex(paramsExecIndex.executorIndex);
-		} else {
-			index = paramsMacroIndex.macroIndex;
-		}
+		const index =
+			paramsExecIndex.executorIndex !== undefined
+				? this.getMacroIndex(paramsExecIndex.executorIndex)
+				: paramsMacroIndex.macroIndex;
 		if (index > this.macros.length) {
 			throw new Error('Selected Macro Number is empty');
 		}
 		const newMaster = this.macros[index];
 		const oldMaster = this.master;
 		if (oldMaster !== newMaster) {
-			if (oldMaster) oldMaster.setMaster(false);
+			if (oldMaster) {
+				oldMaster.setMaster(false);
+			}
 			newMaster.setMaster(true);
 		}
 
@@ -193,16 +197,16 @@ export class MacroEngine extends Observable {
 		}
 	}
 
-	goMacro(macroIndex: number) {
+	public goMacro(macroIndex: number): Promise<void> {
 		const macro = this.macros[macroIndex];
 		if (!macro) {
-			console.log(Error('Macro Out of Bounds'));
+			console.log(new Error('Macro Out of Bounds'));
 			return;
 		}
 		return macro.go(true);
 	}
 
-	resetMacro(macroIndex: number) {
+	public resetMacro(macroIndex: number): Promise<void> {
 		const macro = this.macros[macroIndex];
 		if (!macro) {
 			throw new Error('Macro Out of Bounds');
@@ -210,26 +214,30 @@ export class MacroEngine extends Observable {
 		return macro.reset();
 	}
 
-	goExec(executorNumber: number) {
+	public goExec(executorNumber: number): void {
 		const index = this.getMacroIndex(executorNumber);
 		this.goMacro(index);
 	}
 
-	resetExec(executorNumber: number) {
+	public resetExec(executorNumber: number): void {
 		const index = this.getMacroIndex(executorNumber);
 		this.resetMacro(index);
 	}
 
-	pageUp() {
+	public pageUp(): void {
 		const numPages = Math.ceil(this.macros.length / this.PAGE_SIZE);
-		if (this.page >= numPages) return;
-		this.page = this.page + 1;
+		if (this.page >= numPages) {
+			return;
+		}
+		this.page += 1;
 		this.pageChanged();
 	}
 
-	pageDown() {
-		if (this.page <= 1) return;
-		this.page = this.page - 1;
+	public pageDown(): void {
+		if (this.page <= 1) {
+			return;
+		}
+		this.page -= 1;
 		this.pageChanged();
 	}
 }

@@ -1,15 +1,11 @@
-import { BasicInterface } from './../basic-interface';
-import { ConfigBackend } from '../../engine/config';
-import { IModules } from '../../modules';
-import { MacroEngine } from '../../engine/macros';
+import { BasicInterface } from '../basic-interface';
 
 export abstract class DeskKeyboardInterfaceHelpers extends BasicInterface {
-	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
-		super(config, modules, macros);
-	}
-
-	protected mapColToChannel(col: number, shift: boolean) {
-		if (shift) col = col + 8;
+	protected mapColToChannel(col: number, shift: boolean): string {
+		if (shift) {
+			// eslint-disable-next-line no-param-reassign
+			col += 8;
+		}
 		switch (col) {
 			case 0:
 			case 1:
@@ -39,7 +35,9 @@ export abstract class DeskKeyboardInterfaceHelpers extends BasicInterface {
 		}
 	}
 
-	protected mapChannelToCol(channel: string) {
+	protected mapChannelToCol(
+		channel: string,
+	): 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 {
 		switch (channel) {
 			case 'CH1':
 				return 0;

@@ -2,7 +2,7 @@ import colors from 'colors';
 
 import { AnyModule } from '../../modules';
 
-import { MacroStep } from './step';
+import type { MacroStep } from './step';
 
 type TMacroActionParams =
 	| { [key: string]: number | boolean | string | null }
@@ -19,15 +19,15 @@ export interface MacroActionDefinition {
 }
 
 export class MacroAction {
-	mod: any;
+	mod: unknown;
 	modName: string;
 	path: string[];
 	actionName: string;
 	params: TMacroActionParams;
 	step: MacroStep;
 	execute: (cancelled: boolean) => Promise<boolean>;
-	fn: (...args: any) => Promise<void>;
-	onCancel?: (...args: any) => void;
+	fn: (...args: unknown[]) => Promise<void>;
+	onCancel?: (...args: unknown[]) => void;
 	cancelled = false;
 
 	constructor(
@@ -54,19 +54,19 @@ export class MacroAction {
 			fn = fn[pathPart];
 		}
 
-		this.fn = fn;
+		this.fn = fn as (...args: unknown[]) => Promise<void>;
 
-		this.execute = this._execute.bind(this);
+		this.execute = this.executeInner.bind(this);
 	}
 
-	getDuration() {
-		if (this.modName == 'sleep' && this.path[0] == 'wait') {
+	public getDuration(): number {
+		if (this.modName === 'sleep' && this.path[0] === 'wait') {
 			return this.params as number;
 		}
 		return 0;
 	}
 
-	cancel() {
+	public cancel(): void {
 		if (this.onCancel) {
 			this.cancelled = true;
 			this.onCancel(true);
@@ -74,13 +74,14 @@ export class MacroAction {
 		}
 	}
 
-	_execute(cancelled: boolean) {
+	private async executeInner(cancelled: boolean) {
 		if (cancelled) {
 			return Promise.resolve(true);
 		}
 
-		return new Promise<boolean>((resolve) => {
-			const resolved = false;
+		return new Promise<boolean>((resolve, reject) => {
+			let resolved = false;
+
 			this.fn(this.params)
 				.catch((error) => {
 					console.log(
@@ -94,15 +95,20 @@ export class MacroAction {
 							)}\n        ${String(error)}\n`,
 						),
 					);
-					Promise.reject(`Macro Exec Error: ${String(error)}`);
-					return Promise.resolve();
+					if (!resolved) {
+						reject(new Error(`Macro Exec Error: ${String(error)}`));
+					}
+					resolved = true;
+					return true;
 				})
 				.then(() => {
 					if (!resolved) {
 						resolve(cancelled || this.cancelled);
 					}
 					this.cancelled = false;
-				});
+					return true;
+				})
+				.catch(() => {});
 
 			this.onCancel = () => {
 				if (!resolved) {
@@ -110,6 +116,6 @@ export class MacroAction {
 				}
 				this.cancelled = false;
 			};
-		}).then();
+		});
 	}
 }

@@ -21,9 +21,10 @@ module.exports = {
 		tsconfigRootDir: __dirname,
 	},
 	rules: {
+		"no-nested-ternary": "off",
+		'no-param-reassign': 'off',
 		'arrow-body-style': 'off',
 		'consistent-return': 'off',
-		'no-param-reassign': 'warn',
 		'import/extensions': ['error', {
 			js: 'never',
 			ts: 'never',

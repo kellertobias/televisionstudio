@@ -9,6 +9,25 @@ import { DeskKeyboardInterfaceHelpers } from './keyboard-helper';
 
 type Tabs = 'macro' | 'aux' | 'scene' | 'audio';
 
+const generateRow = (activeColor: LedColor, activeCol: number): LedStatus[] => {
+	return [...new Array(9)].map((_val, col) => {
+		if (col === 9) {
+			return { color: 'off', blink: 'off', dim: true, fast: false };
+		}
+		return {
+			color: col === activeCol || col === activeCol % 8 ? activeColor : 'off',
+			blink:
+				col === activeCol % 8 && activeCol > 8
+					? 'off'
+					: col === activeCol || col === activeCol % 8
+					? activeColor
+					: 'off',
+			dim: false,
+			fast: false,
+		};
+	});
+};
+
 export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 	private serial: DeskSerialBoardInterface;
 
@@ -34,27 +53,6 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.updateBrightness();
 	}
 
-	async connect(): Promise<void> {
-		this.brightnessMain = this.config.generic.brightness.main;
-		this.brightnessDim = this.config.generic.brightness.dim;
-
-		this.updateBrightness();
-
-		this.serial.connect();
-		return Promise.resolve();
-	}
-
-	async shutdown(): Promise<void> {
-		this.serial.shutdown();
-		return Promise.resolve();
-	}
-
-	onRateChange(
-		handler: (params: { push?: boolean; direction?: -1 | 1 }) => void,
-	) {
-		this.rateChangeHandler = handler;
-	}
-
 	private updateTabLedsUpper() {
 		const ledBase: (
 			| {
@@ -66,10 +64,10 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 			| undefined
 			| false
 		)[] = [
-			{ color: 'yellow', on: this.currentTab == 'macro', blink: false },
-			{ color: 'pink', on: this.currentTab == 'scene', blink: false },
-			{ color: 'white', on: this.currentTab == 'aux', blink: false },
-			{ color: 'cyan', on: this.currentTab == 'audio', blink: false },
+			{ color: 'yellow', on: this.currentTab === 'macro', blink: false },
+			{ color: 'pink', on: this.currentTab === 'scene', blink: false },
+			{ color: 'white', on: this.currentTab === 'aux', blink: false },
+			{ color: 'cyan', on: this.currentTab === 'audio', blink: false },
 			false,
 			false,
 			this.recordingPressed
@@ -87,7 +85,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 						blink: false,
 				  },
 			{
-				color: this.currentTab == 'aux' ? 'off' : 'white',
+				color: this.currentTab === 'aux' ? 'off' : 'white',
 				on: false,
 				blink: false,
 			},
@@ -148,28 +146,29 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		};
 
 		switch (this.currentTab) {
-			case 'macro':
+			case 'macro': {
 				const macroPage = this.macros.getCurrentPageExecutors();
 				macroPage.forEach((macro) => {
 					ledStatus.push(this.macroLed(macro));
 				});
 				fillOff();
-
 				break;
-			case 'scene':
+			}
+			case 'scene': {
 				const scenes = this.modules.obs.scene.scenes.slice(0, 8);
 				scenes.forEach((scene) => {
 					ledStatus.push({
 						color: scene.live ? 'green' : scene.next ? 'red' : 'pink',
 						blink: scene.live ? 'green' : scene.next ? 'off' : 'pink',
-						dim: !(scene.live || scene.next == true),
+						dim: !(scene.live || scene.next === true),
 						fast: false,
 					});
 				});
 				fillOff();
 
 				break;
-			case 'aux':
+			}
+			case 'aux': {
 				const currentChannel = this.mapChannelToCol(
 					this.modules.atem.mix.current.aux,
 				);
@@ -201,7 +200,8 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 				});
 
 				break;
-			case 'audio':
+			}
+			case 'audio': {
 				this.macros.getCurrentPageExecutors();
 
 				[...new Array(8)].forEach(() => {
@@ -213,6 +213,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 					});
 				});
 				break;
+			}
 			default:
 				console.log('DEFAULT CASE?');
 		}
@@ -234,21 +235,15 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.updateTabLedsLower();
 	}
 
-	setTab(tab: Tabs) {
-		this.currentTab = tab;
-
-		this.updateTabLeds();
-	}
-
 	private changePage(direction: -1 | 1) {
-		if (this.currentTab == 'macro') {
-			if (direction == 1) {
+		if (this.currentTab === 'macro') {
+			if (direction === 1) {
 				this.macros.pageDown();
 			}
-			if (direction == -1) {
+			if (direction === -1) {
 				this.macros.pageUp();
 			}
-		} else if (this.currentTab == 'aux') {
+		} else if (this.currentTab === 'aux') {
 			// Aux has no Page change
 		} else {
 			console.log('Change Page not yet implemented for this tab.');
@@ -263,7 +258,68 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.serial.brightnessBlinkDim = this.brightnessDim;
 	}
 
-	setBrightness(main: number, dim: number) {
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	private handleMultibus(col: number, _pressed: boolean, _pressedAt: Date) {
+		if (col === 8) {
+			return;
+		}
+		switch (this.currentTab) {
+			case 'macro': {
+				this.macros.goExec(col + 1);
+				break;
+			}
+			case 'audio':
+				break;
+
+			case 'scene': {
+				const scenes = this.modules.obs.scene.scenes.slice(0, 8);
+				const scene = scenes[col];
+				if (scene) {
+					this.modules.obs.scene.set(scene.name);
+				}
+				break;
+			}
+
+			case 'aux': {
+				const channel = this.mapColToChannel(
+					col,
+					this.serial.getButton('left', 3, 8).pressed,
+				);
+				this.modules.atem.mix.aux(channel);
+				break;
+			}
+			default:
+		}
+	}
+
+	public async connect(): Promise<void> {
+		this.brightnessMain = this.config.generic.brightness.main;
+		this.brightnessDim = this.config.generic.brightness.dim;
+
+		this.updateBrightness();
+
+		this.serial.connect();
+		return Promise.resolve();
+	}
+
+	public async shutdown(): Promise<void> {
+		this.serial.shutdown();
+		return Promise.resolve();
+	}
+
+	public onRateChange(
+		handler: (params: { push?: boolean; direction?: -1 | 1 }) => void,
+	): void {
+		this.rateChangeHandler = handler;
+	}
+
+	public setTab(tab: Tabs): void {
+		this.currentTab = tab;
+
+		this.updateTabLeds();
+	}
+
+	public setBrightness(main: number, dim: number): void {
 		this.brightnessMain = main;
 		this.brightnessDim = dim;
 
@@ -273,61 +329,32 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.updateBrightness();
 	}
 
-	handleMultibus(col: number, _pressed: boolean, _pressedAt: Date) {
-		if (col == 8) {
-			return;
-		}
-		switch (this.currentTab) {
-			case 'macro':
-				this.macros.goExec(col + 1);
-				break;
-			case 'audio':
-				break;
-
-			case 'scene':
-				const scenes = this.modules.obs.scene.scenes.slice(0, 8);
-				const scene = scenes[col];
-				if (scene) {
-					this.modules.obs.scene.set(scene.name);
-				}
-				break;
-
-			case 'aux':
-				const channel = this.mapColToChannel(
-					col,
-					this.serial.getButton('left', 3, 8).pressed,
-				);
-				this.modules.atem.mix.aux(channel);
-				break;
-		}
-	}
-
-	setup(): Promise<void> {
+	public async setup(): Promise<void> {
 		this.updateTabLeds();
 
-		this.modules.obs.scene.onListChanged((_params) => {
-			if (this.currentTab == 'scene') {
+		this.modules.obs.scene.onListChanged(() => {
+			if (this.currentTab === 'scene') {
 				this.updateTabLedsLower();
 			}
 		});
 
-		this.modules.atem.mix.onAuxChange((_params) => {
-			if (this.currentTab == 'aux') {
+		this.modules.atem.mix.onAuxChange(() => {
+			if (this.currentTab === 'aux') {
 				this.updateTabLedsLower();
 			}
 		});
 
-		this.modules.obs.output.onRecordingChanged((_params) => {
+		this.modules.obs.output.onRecordingChanged(() => {
 			this.updateTabLedsUpper();
 		});
 
-		this.modules.obs.output.onStreamChanged((_params) => {
+		this.modules.obs.output.onStreamChanged(() => {
 			this.updateTabLedsUpper();
 		});
 
 		this.macros.onExecutorChange((params) => {
 			const { macro } = params;
-			if (this.currentTab == 'macro') {
+			if (this.currentTab === 'macro') {
 				this.updateTabLedsLower();
 			}
 
@@ -338,33 +365,17 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 
 		this.modules.atem.mix.onChange((param) => {
 			const { pgm, pvw } = param;
-			const _pgm = this.mapChannelToCol(pgm);
-			const _pvw = this.mapChannelToCol(pvw);
-			const generateRow = (
-				activeColor: LedColor,
-				activeCol: number,
-			): LedStatus[] => {
-				return [...new Array(9)].map((_val, col) => {
-					if (col == 9) {
-						return { color: 'off', blink: 'off', dim: true, fast: false };
-					}
-					return {
-						color:
-							col == activeCol || col == activeCol % 8 ? activeColor : 'off',
-						blink:
-							col == activeCol % 8 && activeCol > 8
-								? 'off'
-								: col == activeCol || col == activeCol % 8
-								? activeColor
-								: 'off',
-						dim: false,
-						fast: false,
-					};
-				});
-			};
 
-			this.serial.setLedRow('left', 0, generateRow('green', _pvw));
-			this.serial.setLedRow('left', 1, generateRow('red', _pgm));
+			this.serial.setLedRow(
+				'left',
+				0,
+				generateRow('green', this.mapChannelToCol(pvw)),
+			);
+			this.serial.setLedRow(
+				'left',
+				1,
+				generateRow('red', this.mapChannelToCol(pgm)),
+			);
 		});
 
 		this.modules.atem.mix.onBlack((params) => {
@@ -417,8 +428,8 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 
 			['mix', 'dip', 'wipe', 'DVE'].forEach((element, col) => {
 				this.serial.setLed('right', 1, col, {
-					color: style == element ? 'yellow' : 'off',
-					blink: style == element ? 'yellow' : 'off',
+					color: style === element ? 'yellow' : 'off',
+					blink: style === element ? 'yellow' : 'off',
 					dim: false,
 					fast: false,
 				});
@@ -438,7 +449,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 					fast: false,
 				});
 
-				if (key == 'bg') {
+				if (key === 'bg') {
 					return;
 				}
 				const uskOnair = onair[key as keyof TransitionOnairs];
@@ -481,11 +492,11 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.serial.onButton('left', (params) => {
 			const { row, col, pressed, pressedAt } = params;
 
-			if (row == 4 && (col == 6 || col == 7)) {
+			if (row === 4 && (col === 6 || col === 7)) {
 				if (this.outputButtonTimeouts[col]) {
 					clearTimeout(this.outputButtonTimeouts[col]);
 				}
-				if (col == 6) {
+				if (col === 6) {
 					this.recordingPressed = pressed;
 				} else {
 					this.streamingPressed = pressed;
@@ -505,7 +516,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 							dim: false,
 							fast: true,
 						});
-						if (col == 6) {
+						if (col === 6) {
 							if (this.modules.obs.output.recording) {
 								this.modules.obs.output.endRecording();
 							} else {
@@ -517,7 +528,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 							this.modules.obs.output.startStream();
 						}
 					}, 2000);
-				} else if (col == 6) {
+				} else if (col === 6) {
 					if (!this.modules.obs.output.recording) {
 						this.serial.setLed('left', 4, col, {
 							color: 'off',
@@ -557,9 +568,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 
 			switch (row) {
 				case 0:
-				case 1:
+				case 1: {
 					// Shift does not do anything, just change the function of other buttons.
-					if (col == 8) {
+					if (col === 8) {
 						return;
 					}
 
@@ -567,21 +578,22 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 						col,
 						this.serial.getButton('left', row, 8).pressed,
 					);
-					if (row == 0) {
+					if (row === 0) {
 						return this.modules.atem.mix.prv(channel);
 					}
-					if (row == 1) {
+					if (row === 1) {
 						return this.modules.atem.mix.pgm(channel);
 					}
+					break;
+				}
 				case 2:
 					console.log('This Row is Empty on this board');
 					break;
 				case 3:
-					if (col == 8 && this.currentTab != 'aux') {
+					if (col === 8 && this.currentTab !== 'aux') {
 						return this.changePage(-1);
 					}
 					return this.handleMultibus(col, pressed, pressedAt);
-
 				case 4:
 					switch (col) {
 						case 0:
@@ -599,7 +611,10 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 							return;
 						case 8:
 							return this.changePage(1);
+						default:
 					}
+					break;
+				default:
 			}
 		});
 
@@ -612,10 +627,10 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 
 			this.modules.atem.mix.pos(valueOut / 255);
 
-			if (value == 255 && !this.faderReverse) {
+			if (value === 255 && !this.faderReverse) {
 				this.faderReverse = true;
 			}
-			if (value == 0 && this.faderReverse) {
+			if (value === 0 && this.faderReverse) {
 				this.faderReverse = false;
 			}
 		});
@@ -633,50 +648,53 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 			}
 
 			switch (true) {
-				case row == 0 && col == 0:
+				case row === 0 && col === 0:
 					return this.modules.atem.mix.previewTrans();
 
-				case row == 0 && col == 2:
+				case row === 0 && col === 2:
 					return this.modules.atem.mix.cut();
 
-				case row == 0 && col == 3:
+				case row === 0 && col === 3:
 					return this.modules.atem.mix.auto();
 
-				case row == 0 && col == 7:
+				case row === 0 && col === 7:
 					if (this.rateChangeHandler) {
 						this.rateChangeHandler({ push: true });
 					}
 					return;
 
-				case row == 1 && col < 4:
+				case row === 1 && col < 4:
 					return this.modules.atem.mix.type(['mix', 'dip', 'wipe', 'DVE'][col]);
 
-				case row == 3 && col < 4:
+				case row === 3 && col < 4:
 					return this.modules.atem.usk.tie({ usk: col - 1 });
 
-				case row == 4 && col < 4:
+				case row === 4 && col < 4:
 					return this.modules.atem.usk.onair({ usk: col - 1 });
 
-				case row >= 2 && col >= 6 && col <= 7:
+				case row >= 2 && col >= 6 && col <= 7: {
 					const dsk = col - 5;
 
-					if (row == 4) {
+					if (row === 4) {
 						return this.modules.atem.dsk.onair({ dsk });
 					}
-					if (row == 3) {
+					if (row === 3) {
 						return this.modules.atem.dsk.tie({ dsk });
 					}
-					if (row == 2) {
+					if (row === 2) {
 						return this.modules.atem.dsk.auto({ dsk });
 					}
 					return;
+				}
 
-				case row == 4 && col == 8:
+				case row === 4 && col === 8:
 					this.modules.atem.mix.black();
 					return;
 
-				case row == 1 && col == 8:
+				case row === 1 && col === 8:
 					this.macros.goExec(0);
+					break;
+				default:
 			}
 		});
 		return Promise.resolve();

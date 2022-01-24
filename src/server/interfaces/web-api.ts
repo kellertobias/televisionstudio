@@ -1,8 +1,9 @@
-import { BasicInterface } from './basic-interface';
 import { MicroWebsocketServer } from '../engine/websocket-server';
 import { MacroEngine } from '../engine/macros';
 import { ConfigBackend } from '../engine/config';
 import { IModules } from '../modules';
+
+import { BasicInterface } from './basic-interface';
 
 export class WebApi extends BasicInterface {
 	server: MicroWebsocketServer;

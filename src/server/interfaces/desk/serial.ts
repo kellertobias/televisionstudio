@@ -1,8 +1,10 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable no-bitwise */
 import { Socket } from 'net';
 
-import arrayEquals from '/server/backend/helpers/array-equals';
+import arrayEquals from '@/shared/array-equals';
 
-import { BasicInterface } from './../basic-interface';
+import { BasicInterface } from '../basic-interface';
 import { ConfigBackend } from '../../engine/config';
 import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
@@ -47,8 +49,8 @@ export const LED_COLOR_MAP = {
 
 export class DeskSerialBoardInterface extends BasicInterface {
 	private matrix: MatrixCell[][][] = ['left', 'right'].map(() =>
-		[...Array(5)].map(() => {
-			return [...Array(9)].map((): MatrixCell => {
+		[...new Array(5)].map(() => {
+			return [...new Array(9)].map((): MatrixCell => {
 				return {
 					led: {
 						color: 'off',
@@ -65,15 +67,12 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		}),
 	);
 
-	brightness: number = 20;
-	brightnessBlink: number = 20;
-	brightnessDim: number = 3;
-	brightnessBlinkDim: number = 3;
+	public brightness = 20;
+	public brightnessBlink = 20;
+	public brightnessDim = 3;
+	public brightnessBlinkDim = 3;
 
-	willShutdown: boolean = false;
-
-	socket?: Socket;
-	parser: any;
+	private socket?: Socket;
 	interval?: NodeJS.Timeout;
 	reconnectInterval?: NodeJS.Timeout;
 	statusOverwriteTimer = 0;
@@ -89,8 +88,10 @@ export class DeskSerialBoardInterface extends BasicInterface {
 	}
 
 	async connect(): Promise<void> {
-		if (this.reconnectInterval) clearTimeout(this.reconnectInterval);
-		const serialPortServer = this.config.devices[`desk`].port;
+		if (this.reconnectInterval) {
+			clearTimeout(this.reconnectInterval);
+		}
+		const serialPortServer = this.config.devices.desk.port;
 		if (serialPortServer === undefined) {
 			console.log(`[SERIAL-CLIENT] Missing Server Port`);
 			return;
@@ -101,8 +102,11 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		});
 
 		try {
-			console.log(`[SERIAL-CLIENT] Open localhost:${serialPortServer}`);
+			if (!this.warnedOfNonexistence) {
+				console.log(`[SERIAL-CLIENT] Open localhost:${serialPortServer}`);
+			}
 			this.socket.connect(serialPortServer, '127.0.0.1', () => {
+				this.warnedOfNonexistence = false;
 				console.log(`[SERIAL-CLIENT] Connected`);
 				console.log('[SERIAL-CLIENT] Setting Status Update Interval');
 				this.interval = setInterval(() => {
@@ -114,7 +118,11 @@ export class DeskSerialBoardInterface extends BasicInterface {
 				}, 100);
 			});
 		} catch (error) {
-			console.log('[SERIAL-CLIENT] Could not connect', error);
+			if (!this.warnedOfNonexistence) {
+				console.log('[SERIAL-CLIENT] Could not connect', error);
+			}
+			this.warnedOfNonexistence = true;
+
 			this.reconnectInterval = setTimeout(() => {
 				this.connect();
 			}, 500);
@@ -124,8 +132,12 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		this.socket.on('data', this.onReceive.bind(this));
 
 		this.socket.on('close', () => {
-			console.log('[SERIAL-CLIENT] Closed');
-			if (this.interval) clearInterval(this.interval);
+			if (!this.warnedOfNonexistence) {
+				console.log('[SERIAL-CLIENT] Closed');
+			}
+			if (this.interval) {
+				clearInterval(this.interval);
+			}
 			this.interval = undefined;
 			this.reconnectInterval = setTimeout(() => {
 				this.connect();
@@ -135,7 +147,9 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		return Promise.resolve();
 	}
 	shutdown(): Promise<void> {
-		if (this.interval) clearInterval(this.interval);
+		if (this.interval) {
+			clearInterval(this.interval);
+		}
 		this.interval = undefined;
 		this.socket?.destroy();
 		return Promise.resolve();
@@ -154,10 +168,9 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		} else {
 			console.log('PORT NOT OPEN');
 		}
-		return;
 	}
 
-	onButton(
+	public onButton(
 		side: 'left' | 'right',
 		handler: (params: {
 			row: number;
@@ -165,97 +178,112 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			pressed: boolean;
 			pressedAt: Date;
 		}) => void,
-	) {
+	): void {
 		this.registerEventHandler(`button-${side}`, handler);
 	}
 
-	onFader(handler: (params: { fader: number; value: number }) => void) {
+	public onFader(
+		handler: (params: { fader: number; value: number }) => void,
+	): void {
 		this.registerEventHandler('fader', handler);
 	}
 
-	onEncoder(handler: (params: { encoder: number; direction: 1 | -1 }) => void) {
+	public onEncoder(
+		handler: (params: { encoder: number; direction: 1 | -1 }) => void,
+	): void {
 		this.registerEventHandler('encoder', handler);
 	}
 
-	setLed(side: 'left' | 'right', row: number, col: number, status: LedStatus) {
-		const submatrix = this.matrix[side == 'left' ? 0 : 1];
-		const _row = submatrix.length - row - 1;
-		const cell = submatrix[_row][col];
-		if (!cell) throw Error(`Cell ${_row}:${col} does not exist.`);
+	public setLed(
+		side: 'left' | 'right',
+		row: number,
+		col: number,
+		status: LedStatus,
+	): void {
+		const submatrix = this.matrix[side === 'left' ? 0 : 1];
+		const r = submatrix.length - row - 1;
+		const cell = submatrix[r][col];
+		if (!cell) {
+			throw new Error(`Cell ${r}:${col} does not exist.`);
+		}
 
 		cell.led = status;
 	}
 
-	setLedRow(side: 'left' | 'right', row: number, status: LedStatus[]) {
-		const submatrix = this.matrix[side == 'left' ? 0 : 1];
-		const _row = submatrix.length - row - 1;
+	public setLedRow(
+		side: 'left' | 'right',
+		row: number,
+		status: LedStatus[],
+	): void {
+		const submatrix = this.matrix[side === 'left' ? 0 : 1];
+		const r = submatrix.length - row - 1;
 
 		status.forEach((led, col) => {
-			const cell = submatrix[_row][col];
-			if (!cell) throw Error(`Cell ${_row}:${col} does not exist.`);
+			const cell = submatrix[r][col];
+			if (!cell) {
+				throw new Error(`Cell ${r}:${col} does not exist.`);
+			}
 			cell.led = led;
 		});
 	}
 
-	getButton(side: 'left' | 'right', row: number, col: number): ButtonStatus {
-		const cell = this.matrix[side == 'left' ? 0 : 1][row][col];
-		if (!cell) throw Error(`Cell ${row}:${col} does not exist.`);
+	public getButton(
+		side: 'left' | 'right',
+		row: number,
+		col: number,
+	): ButtonStatus {
+		const cell = this.matrix[side === 'left' ? 0 : 1][row][col];
+		if (!cell) {
+			throw new Error(`Cell ${row}:${col} does not exist.`);
+		}
 		return cell.button;
 	}
 
-	onReceive(buf: Buffer): void {
+	private onReceive(buf: Buffer): void {
 		const data = buf.toString();
 		const [address, valueRaw] = data.split('=');
 		const [side, row, col] = address.split(':').map((x) => Number(x));
 		const value = Number(valueRaw);
+
+		let pressedAt: Date | undefined;
+
 		switch (true) {
 			case side === 3:
-				const encoderAddress = row;
-				const encoderDirection = (value & 0b00000011) == 0b00000001 ? -1 : 1;
-
-				console.log(`BTN fader:${row}:${col}=${encoderDirection}`);
 				this.runEventHandlers('encoder', {
-					encoder: encoderAddress,
-					direction: encoderDirection,
+					encoder: row,
+					direction: (value & 0b00000011) === 0b00000001 ? -1 : 1,
 				});
 				break;
 
 			case side === 2:
-				const faderAddress = row;
-				const faderValue = value;
-
-				console.log(`BTN fader:${row}:${col}=${value}`);
 				this.runEventHandlers('fader', {
-					fader: faderAddress,
-					value: faderValue,
+					fader: row,
+					value,
 				});
 				break;
 
 			default:
-				if (side == -1 || row == -1 || col == -1) {
+				if (side === -1 || row === -1 || col === -1) {
 					console.log('Address Invalid');
 					break;
 				}
 
-				//The Value of a button is either pressed (0b00000001) or released (0b00000000)
-				const pressed = !value;
-				let pressedAt: Date | undefined = undefined;
+				// The Value of a button is either pressed (0b00000001) or released (0b00000000)
 				try {
 					const cell = this.matrix[side][row][col];
 
-					if (pressed) pressedAt = new Date();
-					else pressedAt = cell.button.pressedAt;
+					pressedAt = !value ? new Date() : cell.button.pressedAt;
 
-					cell.button.pressed = pressed;
+					cell.button.pressed = !value;
 					cell.button.pressedAt = pressedAt;
-				} catch (error) {
+				} catch {
 					console.log(`Cell ${side}:${row}:${col} does not exist.`);
 				}
 
 				this.runEventHandlers(`button-${side ? 'right' : 'left'}`, {
 					row,
 					col,
-					pressed,
+					value: !value,
 					pressedAt,
 				});
 
@@ -263,10 +291,10 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		}
 	}
 
-	sendStatus(): Promise<void> {
+	private sendStatus(): Promise<void> {
 		const statusMessage: number[] = [];
 
-		//Add Global Status
+		// Add Global Status
 		statusMessage.push(this.brightness);
 		statusMessage.push(this.brightnessBlink);
 		statusMessage.push(this.brightnessDim);
@@ -274,13 +302,13 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		this.matrix.forEach((side) => {
 			side.forEach((row) => {
 				row.forEach((cell) => {
-					const led = cell.led;
+					const { led } = cell;
 
-					let ledColor = LED_COLOR_MAP[led.color] << 5;
-					let ledBlinkColor = LED_COLOR_MAP[led.blink] << 2;
-					let ledDim = (led.dim ? 0b1 : 0b0) << 1;
-					let ledFast = led.fast ? 0b1 : 0b0;
-					let ledStatus = ledColor | ledBlinkColor | ledDim | ledFast;
+					const ledColor = LED_COLOR_MAP[led.color] << 5;
+					const ledBlinkColor = LED_COLOR_MAP[led.blink] << 2;
+					const ledDim = (led.dim ? 0b1 : 0b0) << 1;
+					const ledFast = led.fast ? 0b1 : 0b0;
+					const ledStatus = ledColor | ledBlinkColor | ledDim | ledFast;
 					statusMessage.push(ledStatus);
 				});
 			});
@@ -288,14 +316,14 @@ export class DeskSerialBoardInterface extends BasicInterface {
 
 		if (
 			!arrayEquals(statusMessage, this.lastStatus) ||
-			this.statusOverwriteTimer == 0
+			this.statusOverwriteTimer === 0
 		) {
 			this.lastStatus = statusMessage;
 			this.statusOverwriteTimer = 10;
 			return this.send(statusMessage.map((x) => Math.max(0, Math.min(255, x))));
 		}
 
-		this.statusOverwriteTimer--;
+		this.statusOverwriteTimer -= this.statusOverwriteTimer;
 
 		return Promise.resolve();
 	}
