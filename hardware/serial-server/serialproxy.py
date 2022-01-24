@@ -1,5 +1,6 @@
 import socket
 import sys
+import os
 
 import serial
 import threading
@@ -24,7 +25,18 @@ for k in range(2):
                 addressIterator += 1
             BUTTON_ADDRESSES[addressIterator] = (k, r, c)
 
-config = json.load(open('./config/devices.json'))
+configLocations = [
+    '../../config/devices.json',
+    '../desk/config/devices.json',
+]
+for configLocation in configLocations:
+    print("Try: %s" % configLocation)
+    sys.stdout.flush()
+    if os.path.exists(configLocation):
+        print(" -> Loading Config.")
+        config = json.load(open(configLocation))
+        break
+
 PORT = config["desk"]["port"]
 SERDEV = config["desk"]["dev"]
 BAUD = config["desk"].get("baud", 250000)
@@ -32,26 +44,37 @@ BAUD = config["desk"].get("baud", 250000)
 # open serial port
 ser = serial.Serial(SERDEV, baudrate=BAUD)
 print("Connected to %s" % ser.name)
+sys.stdout.flush()
 
 connections = []
 
 ServerSocket = socket.socket()
 try:
+    print("Starting Server localhost:%s" % PORT)
     ServerSocket.bind(('localhost', PORT))
 except socket.error as e:
     print(str(e))
-    sys.exit()
+    sys.stdout.flush()
+    sys.exit(1)
 
 killed = False
 
+lastMsg = []
+
 
 def serial_write(data):
+    global lastMsg
     msg = MESSAGE_HEADER + [0x00] + data + MESSAGE_FOOTER
+    if lastMsg != msg:
+        print("Sending: ", msg)
+        sys.stdout.flush()
+        lastMsg = msg
     ser.write(msg)
 
 
 def start_serial_read():
     print('Serial Reader is Started')
+    sys.stdout.flush()
     address = None
     value = None
     readState = 'IDLE'
@@ -59,15 +82,19 @@ def start_serial_read():
         data = ser.read_until(expected=MESSAGE_FOOTER, size=6)
         if data[0] != MESSAGE_HEADER[0]:
             print("Header A Missing")
+            sys.stdout.flush()
             continue
         if data[1] != MESSAGE_HEADER[1]:
             print("Header B Missing")
+            sys.stdout.flush()
             continue
         if data[4] != MESSAGE_FOOTER[0]:
             print("Footer A Missing")
+            sys.stdout.flush()
             continue
         if data[5] != MESSAGE_FOOTER[1]:
             print("Footer B Missing")
+            sys.stdout.flush()
             continue
         address = data[2]
         value = data[3]
@@ -84,6 +111,7 @@ def start_serial_read():
 
         print("[SERIAL] IN: %d:%d:%d (%d) = %d" %
               (k, r, c, address, value))
+        sys.stdout.flush()
 
         for conn in connections:
             conn.sendall(b"%d:%d:%d=%d" % (k, r, c, value))
@@ -98,6 +126,7 @@ ServerSocket.listen(5)
 
 def threaded_client(connection):
     print("Client Thread Started")
+    sys.stdout.flush()
     index = len(connections)
     connections.append(connection)
 
@@ -118,12 +147,14 @@ try:
     while not killed:
         clientConnection, address = ServerSocket.accept()
         print('Connected to: ' + address[0] + ':' + str(address[1]))
+        sys.stdout.flush()
         clientThread = threading.Thread(
             target=threaded_client, args=(clientConnection, ))
         clientThread.start()
         clientThreads.append(clientThread)
 except KeyboardInterrupt:
     print("Aborting...")
+    sys.stdout.flush()
     killed = True
     ServerSocket.close()
 

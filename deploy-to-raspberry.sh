@@ -20,6 +20,7 @@ echo "Build Done."
 workingpath="/home/pi/"
 scp -r app.tar.gz "$1":"$workingpath"
 scp -r hardware/tally-server "$1":"$workingpath/lora"
+scp -r hardware/serial-server "$1":"$workingpath/serial"
 ssh -T $1 << EOF
 
 echo "-------------------------------------------------"
@@ -39,6 +40,7 @@ cd bundle
 echo "Stopping Service (Might need your Password)"
 sudo systemctl stop desk-server
 sudo systemctl stop lora-server
+sudo systemctl stop serial-server
 
 rm -rf /opt/webapps/desk/bundle
 rm -rf /opt/webapps/lora
@@ -47,6 +49,7 @@ mv /home/pi/lora /opt/webapps/lora
 
 echo "Starting Service (Might need your Password)"
 sudo systemctl start lora-server
+sudo systemctl start serial-server
 sudo systemctl start desk-server
 
 EOF
