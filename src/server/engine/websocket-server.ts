@@ -1,4 +1,5 @@
 import http from 'http';
+
 import { nanoid } from 'nanoid';
 import {
 	request as Request,
@@ -6,8 +7,8 @@ import {
 	server as WebSocketServer,
 } from 'websocket';
 
-type tMethod = (params: any) => Promise<any> | void;
-type tRequest =
+type TMethod = (params: any) => Promise<any> | void;
+type TRequest =
 	| {
 			t: 'method';
 			m: string;
@@ -18,7 +19,7 @@ type tRequest =
 			t: 'ping';
 	  };
 
-type tResponse =
+type TResponse =
 	| {
 			t: 'publish' | 'response';
 			i?: string;
@@ -31,18 +32,18 @@ type tResponse =
 	  };
 
 type AugmentedConnection = Connection & {
-	sendMessage: (msg: tResponse) => void;
+	sendMessage: (msg: TResponse) => void;
 };
 
-type tOnConnectionCallback = (connection: AugmentedConnection) => void;
+type TOnConnectionCallback = (connection: AugmentedConnection) => void;
 export class MicroWebsocketServer {
 	public port: number;
 	protected server: WebSocketServer | undefined;
 	protected httpServer: http.Server;
 
 	protected connections: { [key: string]: AugmentedConnection } = {};
-	protected onConnectionCallbacks: tOnConnectionCallback[] = [];
-	protected methodStore: { [key: string]: tMethod } = {};
+	protected onConnectionCallbacks: TOnConnectionCallback[] = [];
+	protected methodStore: { [key: string]: TMethod } = {};
 	protected dataStore: { [key: string]: any } = {};
 
 	constructor(port: number) {
@@ -56,14 +57,14 @@ export class MicroWebsocketServer {
 		console.log('Starting Server');
 		this.httpServer.listen(this.port);
 		this.server = new WebSocketServer({ httpServer: this.httpServer });
-		this.server.on('request', (request) => this._handleRequest(request));
+		this.server.on('request', (request) => {
+			this.handleRequest(request);
+		});
 
 		this.onConnection((conn: AugmentedConnection) => {
 			Object.keys(this.dataStore).forEach((endpoint: string) => {
 				this.singleTempPublish(conn, endpoint, this.dataStore[endpoint]);
 			});
-
-			return;
 		});
 	}
 
@@ -81,37 +82,36 @@ export class MicroWebsocketServer {
 		this.connections = {};
 
 		this.httpServer.close();
-		return;
 	}
 
-	_handleRequest(request: Request) {
+	handleRequest(request: Request) {
 		console.log('New Websocket Client Connected');
 		const connection = request.accept(undefined, request.origin);
 		const id: string = nanoid();
 		const conn: AugmentedConnection = <AugmentedConnection>connection;
 
-		conn.sendMessage = (msg: tResponse) => {
+		conn.sendMessage = (msg: TResponse) => {
 			connection.sendUTF(JSON.stringify(msg));
 		};
 
 		this.connections[id] = conn;
 
 		connection.on('message', (message) => {
-			if (!message.utf8Data) {
+			if (!(message as any).utf8Data) {
 				console.log('Websocket Message was empty');
 				return;
 			}
 
 			try {
-				const data = JSON.parse(message.utf8Data) as tRequest;
-				if (data.t == 'method') {
-					const method: tMethod = this.methodStore[data.m];
+				const data = JSON.parse((message as any).utf8Data) as TRequest;
+				if (data.t === 'method') {
+					const method: TMethod = this.methodStore[data.m];
 					if (!method) {
-						console.error('no such method: ' + data.m);
+						console.error(`no such method: ${data.m}`);
 						return;
 					}
 
-					console.log(`[WEBAPI] Running Method ${data.m} with data: `, data.d);
+					console.log(`[WEBAPI] Running Method ${data.m} with data:`, data.d);
 
 					try {
 						(method(data.d || {}) || Promise.resolve())
@@ -122,9 +122,10 @@ export class MicroWebsocketServer {
 									m: data.m,
 									d: res,
 								});
+								return res;
 							})
-							.catch((err: Error) => {
-								const error = String(err);
+							.catch((error_: Error) => {
+								const error = String(error_);
 								conn.sendMessage({
 									t: 'response',
 									i: data.i,
@@ -132,12 +133,12 @@ export class MicroWebsocketServer {
 									e: error,
 								});
 							});
-					} catch (err) {
+					} catch (error_) {
 						console.error(
 							`[WEBAPI] Error when executing Method${data.m}:`,
-							err,
+							error_,
 						);
-						const error = String(err);
+						const error = String(error_);
 						conn.sendMessage({
 							t: 'response',
 							i: data.i,
@@ -154,11 +155,11 @@ export class MicroWebsocketServer {
 					const unknownType = (data as { t: string }).t as string;
 					console.log(`[WEBAPI] Call Type Unknown ${unknownType}`);
 				}
-			} catch (error) {
+			} catch {
 				console.log('Websocket Message was no JSON:', message.utf8Data);
 			}
 		});
-		connection.on('close', (_reasonCode, _description) => {
+		connection.on('close', () => {
 			console.log('Client has disconnected.');
 			delete this.connections[id];
 		});
@@ -196,22 +197,22 @@ export class MicroWebsocketServer {
 		delete this.dataStore[endpoint];
 	}
 
-	onConnection = (fn: tOnConnectionCallback) => {
+	onConnection = (fn: TOnConnectionCallback) => {
 		this.onConnectionCallbacks.push(fn);
 	};
 
-	_registerMethods(endpoint: string, method: tMethod) {
+	registerMethods(endpoint: string, method: TMethod) {
 		if (this.methodStore[endpoint]) {
-			console.error('Method Already Defined for ' + endpoint);
-			throw new Error('Method ' + endpoint + ' Already Defined');
+			console.error(`Method Already Defined for ${endpoint}`);
+			throw new Error(`Method ${endpoint} Already Defined`);
 		}
 		this.methodStore[endpoint] = method;
 	}
 
-	methods(methods: { [endpoint: string]: tMethod }) {
+	methods(methods: { [endpoint: string]: TMethod }) {
 		Object.keys(methods).forEach((endpoint: string) => {
 			const method = methods[endpoint];
-			this._registerMethods(endpoint, method);
+			this.registerMethods(endpoint, method);
 		});
 	}
 }

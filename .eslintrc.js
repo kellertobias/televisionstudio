@@ -68,6 +68,7 @@ module.exports = {
 		'import/prefer-default-export': 'off',
 		'jsx-a11y/label-has-associated-control': 'warn',
 		'no-console': 'off',
+		"no-restricted-syntax": 'off',
 		'no-restricted-imports': [
 			'error',
 			{

@@ -1,12 +1,11 @@
 import { ConfigBackend } from '../../engine/config';
 import { iModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
-
-import { DeskSerialBoardInterface } from './serial';
-import { LedColor, LedStatus } from './serial';
-import { DeskKeyboardInterfaceHelpers } from './keyboard-helper';
 import { TransitionOnairs, TransitionTies } from '../../modules/atem/usk';
 import { Macro } from '../../engine/macros/macro';
+
+import { DeskSerialBoardInterface, LedColor, LedStatus } from './serial';
+import { DeskKeyboardInterfaceHelpers } from './keyboard-helper';
 
 type Tabs = 'macro' | 'aux' | 'scene' | 'audio';
 
@@ -22,11 +21,11 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 	}) => void = undefined;
 	private outputButtonTimeouts: NodeJS.Timeout[] = [];
 
-	public brightnessMain: number = 50;
-	public brightnessDim: number = 10;
 	private config: ConfigBackend;
-	private recordingPressed: boolean = false;
-	private streamingPressed: boolean = false;
+	public brightnessMain = 50;
+	public brightnessDim = 10;
+	private recordingPressed = false;
+	private streamingPressed = false;
 
 	constructor(config: ConfigBackend, modules: iModules, macros: MacroEngine) {
 		super(config, modules, macros);
@@ -95,18 +94,21 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		];
 
 		ledBase.forEach((params, col) => {
-			if (params === undefined) return;
-			if (!params)
+			if (params === undefined) {
+				return;
+			}
+			if (!params) {
 				return this.serial.setLed('left', 4, col, {
 					color: 'off',
 					blink: 'off',
 					dim: true,
 					fast: false,
 				});
+			}
 
 			const { color, on, blink } = params;
 			return this.serial.setLed('left', 4, col, {
-				color: color,
+				color,
 				blink: blink ? 'off' : color,
 				dim: !on,
 				fast: params.fast || false,
@@ -173,11 +175,11 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 				);
 				const currentCol = currentChannel % 8;
 
-				[...Array(8)].forEach((_val, col) => {
-					if (currentCol == col) {
+				[...new Array(8)].forEach((_val, col) => {
+					if (currentCol === col) {
 						ledStatus.push({
 							color: 'white',
-							blink: currentChannel == currentCol ? 'white' : 'off',
+							blink: currentChannel === currentCol ? 'white' : 'off',
 							dim: false,
 							fast: false,
 						});
@@ -202,18 +204,20 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 			case 'audio':
 				this.macros.getCurrentPageExecutors();
 
-				[...Array(8)].forEach((_element) => {
+				[...new Array(8)].forEach(() => {
 					ledStatus.push({
-						color: 'off', //'blue',
-						blink: 'off', //'blue',
+						color: 'off', // 'blue',
+						blink: 'off', // 'blue',
 						dim: true,
 						fast: false,
 					});
 				});
 				break;
+			default:
+				console.log('DEFAULT CASE?');
 		}
 
-		if (this.currentTab != 'aux') {
+		if (this.currentTab !== 'aux') {
 			ledStatus.push({
 				color: 'white',
 				blink: 'white',
@@ -245,8 +249,7 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 				this.macros.pageUp();
 			}
 		} else if (this.currentTab == 'aux') {
-			//Aux has no Page change
-			return;
+			// Aux has no Page change
 		} else {
 			console.log('Change Page not yet implemented for this tab.');
 		}
@@ -271,7 +274,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 	}
 
 	handleMultibus(col: number, _pressed: boolean, _pressedAt: Date) {
-		if (col == 8) return;
+		if (col == 8) {
+			return;
+		}
 		switch (this.currentTab) {
 			case 'macro':
 				this.macros.goExec(col + 1);
@@ -282,7 +287,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 			case 'scene':
 				const scenes = this.modules.obs.scene.scenes.slice(0, 8);
 				const scene = scenes[col];
-				if (scene) this.modules.obs.scene.set(scene.name);
+				if (scene) {
+					this.modules.obs.scene.set(scene.name);
+				}
 				break;
 
 			case 'aux':
@@ -299,11 +306,15 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.updateTabLeds();
 
 		this.modules.obs.scene.onListChanged((_params) => {
-			if (this.currentTab == 'scene') this.updateTabLedsLower();
+			if (this.currentTab == 'scene') {
+				this.updateTabLedsLower();
+			}
 		});
 
 		this.modules.atem.mix.onAuxChange((_params) => {
-			if (this.currentTab == 'aux') this.updateTabLedsLower();
+			if (this.currentTab == 'aux') {
+				this.updateTabLedsLower();
+			}
 		});
 
 		this.modules.obs.output.onRecordingChanged((_params) => {
@@ -316,7 +327,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 
 		this.macros.onExecutorChange((params) => {
 			const { macro } = params;
-			if (this.currentTab == 'macro') this.updateTabLedsLower();
+			if (this.currentTab == 'macro') {
+				this.updateTabLedsLower();
+			}
 
 			if (macro && macro.isMaster) {
 				this.serial.setLed('right', 1, 8, this.macroLed(macro));
@@ -331,9 +344,10 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 				activeColor: LedColor,
 				activeCol: number,
 			): LedStatus[] => {
-				return [...Array(9)].map((_val, col) => {
-					if (col == 9)
+				return [...new Array(9)].map((_val, col) => {
+					if (col == 9) {
 						return { color: 'off', blink: 'off', dim: true, fast: false };
+					}
 					return {
 						color:
 							col == activeCol || col == activeCol % 8 ? activeColor : 'off',
@@ -424,7 +438,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 					fast: false,
 				});
 
-				if (key == 'bg') return;
+				if (key == 'bg') {
+					return;
+				}
 				const uskOnair = onair[key as keyof TransitionOnairs];
 				this.serial.setLed('right', 4, col, {
 					color: uskOnair ? 'red' : 'off',
@@ -466,8 +482,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 			const { row, col, pressed, pressedAt } = params;
 
 			if (row == 4 && (col == 6 || col == 7)) {
-				if (this.outputButtonTimeouts[col])
+				if (this.outputButtonTimeouts[col]) {
 					clearTimeout(this.outputButtonTimeouts[col]);
+				}
 				if (col == 6) {
 					this.recordingPressed = pressed;
 				} else {
@@ -494,71 +511,75 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 							} else {
 								this.modules.obs.output.startRecording();
 							}
+						} else if (this.modules.obs.output.streaming) {
+							this.modules.obs.output.endStream();
 						} else {
-							if (this.modules.obs.output.streaming) {
-								this.modules.obs.output.endStream();
-							} else {
-								this.modules.obs.output.startStream();
-							}
+							this.modules.obs.output.startStream();
 						}
 					}, 2000);
-				} else {
-					if (col == 6) {
-						if (!this.modules.obs.output.recording) {
-							this.serial.setLed('left', 4, col, {
-								color: 'off',
-								blink: 'off',
-								dim: false,
-								fast: true,
-							});
-						} else {
-							this.serial.setLed('left', 4, col, {
-								color: 'red',
-								blink: 'red',
-								dim: false,
-								fast: true,
-							});
-						}
+				} else if (col == 6) {
+					if (!this.modules.obs.output.recording) {
+						this.serial.setLed('left', 4, col, {
+							color: 'off',
+							blink: 'off',
+							dim: false,
+							fast: true,
+						});
 					} else {
-						if (!this.modules.obs.output.streaming) {
-							this.serial.setLed('left', 4, col, {
-								color: 'off',
-								blink: 'off',
-								dim: false,
-								fast: true,
-							});
-						} else {
-							this.serial.setLed('left', 4, col, {
-								color: 'red',
-								blink: 'red',
-								dim: false,
-								fast: true,
-							});
-						}
+						this.serial.setLed('left', 4, col, {
+							color: 'red',
+							blink: 'red',
+							dim: false,
+							fast: true,
+						});
 					}
+				} else if (!this.modules.obs.output.streaming) {
+					this.serial.setLed('left', 4, col, {
+						color: 'off',
+						blink: 'off',
+						dim: false,
+						fast: true,
+					});
+				} else {
+					this.serial.setLed('left', 4, col, {
+						color: 'red',
+						blink: 'red',
+						dim: false,
+						fast: true,
+					});
 				}
 				return;
 			}
 
-			if (!pressed) return;
+			if (!pressed) {
+				return;
+			}
 
 			switch (row) {
 				case 0:
 				case 1:
-					//Shift does not do anything, just change the function of other buttons.
-					if (col == 8) return;
+					// Shift does not do anything, just change the function of other buttons.
+					if (col == 8) {
+						return;
+					}
 
 					const channel = this.mapColToChannel(
 						col,
 						this.serial.getButton('left', row, 8).pressed,
 					);
-					if (row == 0) return this.modules.atem.mix.prv(channel);
-					if (row == 1) return this.modules.atem.mix.pgm(channel);
+					if (row == 0) {
+						return this.modules.atem.mix.prv(channel);
+					}
+					if (row == 1) {
+						return this.modules.atem.mix.pgm(channel);
+					}
 				case 2:
 					console.log('This Row is Empty on this board');
 					break;
 				case 3:
-					if (col == 8 && this.currentTab != 'aux') return this.changePage(-1);
+					if (col == 8 && this.currentTab != 'aux') {
+						return this.changePage(-1);
+					}
 					return this.handleMultibus(col, pressed, pressedAt);
 
 				case 4:
@@ -585,7 +606,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.serial.onFader((params) => {
 			const { value } = params;
 			let valueOut = value;
-			if (this.faderReverse) valueOut = 255 - value;
+			if (this.faderReverse) {
+				valueOut = 255 - value;
+			}
 
 			this.modules.atem.mix.pos(valueOut / 255);
 
@@ -598,13 +621,16 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		});
 
 		this.serial.onEncoder((params) => {
-			if (this.rateChangeHandler)
+			if (this.rateChangeHandler) {
 				this.rateChangeHandler({ direction: params.direction });
+			}
 		});
 
 		this.serial.onButton('right', (params) => {
 			const { row, col, pressed } = params;
-			if (!pressed) return;
+			if (!pressed) {
+				return;
+			}
 
 			switch (true) {
 				case row == 0 && col == 0:
@@ -617,7 +643,9 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 					return this.modules.atem.mix.auto();
 
 				case row == 0 && col == 7:
-					if (this.rateChangeHandler) this.rateChangeHandler({ push: true });
+					if (this.rateChangeHandler) {
+						this.rateChangeHandler({ push: true });
+					}
 					return;
 
 				case row == 1 && col < 4:
@@ -632,9 +660,15 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 				case row >= 2 && col >= 6 && col <= 7:
 					const dsk = col - 5;
 
-					if (row == 4) return this.modules.atem.dsk.onair({ dsk });
-					if (row == 3) return this.modules.atem.dsk.tie({ dsk });
-					if (row == 2) return this.modules.atem.dsk.auto({ dsk });
+					if (row == 4) {
+						return this.modules.atem.dsk.onair({ dsk });
+					}
+					if (row == 3) {
+						return this.modules.atem.dsk.tie({ dsk });
+					}
+					if (row == 2) {
+						return this.modules.atem.dsk.auto({ dsk });
+					}
 					return;
 
 				case row == 4 && col == 8:
@@ -643,7 +677,6 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 
 				case row == 1 && col == 8:
 					this.macros.goExec(0);
-					return;
 			}
 		});
 		return Promise.resolve();

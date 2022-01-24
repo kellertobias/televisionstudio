@@ -1,66 +1,69 @@
-import { AtemState, Commands, Enums } from "atem-connection";
-import { AtemSubModule } from "./_sub";
-import arrayEquals from '/server/backend/helpers/array-equals'
+import { AtemState, Commands, Enums } from 'atem-connection';
+import { AtemSubModule } from './_sub';
+import arrayEquals from '/server/backend/helpers/array-equals';
 
 interface AtemMacro {
-    name: string,
-    index: number,
-    running: boolean,
-    waiting: boolean,
+	name: string;
+	index: number;
+	running: boolean;
+	waiting: boolean;
 }
 
 export class AtemModuleMacro extends AtemSubModule {
-    current : AtemMacro[] = []
-    setup(): Promise<void> {
-        return Promise.resolve()
-    }
-    
-    update(status: AtemState, pathToChange: string[]): Promise<void> {
-        const macros = status.macro.macroProperties
-        const macroPlayer = status.macro.macroPlayer
-        const runningIndex = macroPlayer.macroIndex
+	current: AtemMacro[] = [];
+	setup(): Promise<void> {
+		return Promise.resolve();
+	}
 
-        const nextState : AtemMacro[] = []
+	update(status: AtemState, pathToChange: string[]): Promise<void> {
+		const macros = status.macro.macroProperties;
+		const macroPlayer = status.macro.macroPlayer;
+		const runningIndex = macroPlayer.macroIndex;
 
-        macros.forEach((macro, i) => {
-        if (!macro?.isUsed) return null
-            const macroOut : AtemMacro = {
-                name: macro?.name,
-                index: i,
-                running: i == runningIndex && macroPlayer.isRunning,
-                waiting: i == runningIndex && macroPlayer.isWaiting,
-            }
+		const nextState: AtemMacro[] = [];
 
-            nextState.push(macroOut)
-        })
-        const current = this.current
-        this.current = nextState
-        if(!arrayEquals(nextState, current)) {
-            this.parent.runEventHandlers('macro', {macros: nextState})
-        }
+		macros.forEach((macro, i) => {
+			if (!macro?.isUsed) return null;
+			const macroOut: AtemMacro = {
+				name: macro?.name,
+				index: i,
+				running: i == runningIndex && macroPlayer.isRunning,
+				waiting: i == runningIndex && macroPlayer.isWaiting,
+			};
 
-        return Promise.resolve()
-    }
+			nextState.push(macroOut);
+		});
+		const current = this.current;
+		this.current = nextState;
+		if (!arrayEquals(nextState, current)) {
+			this.parent.runEventHandlers('macro', { macros: nextState });
+		}
 
-    onChange(handler: ((param: {macros: AtemMacro[]}) => void)) {
-        this.parent.registerEventHandler('macro', handler)
-    }
+		return Promise.resolve();
+	}
 
-    _exec = async (params: {macro: number} | number, type: Enums.MacroAction) => {
-        const {macro} = typeof(params) == 'object' ? params : {macro: params}
-        const c = new Commands.MacroActionCommand(macro, type)
-        return this.client.sendCommand(c)
-    }
+	onChange(handler: (param: { macros: AtemMacro[] }) => void) {
+		this.parent.registerEventHandler('macro', handler);
+	}
 
-    run = async (params: {macro: number} | number) => {
-        return this._exec(params, Enums.MacroAction.Run)
-    }
+	_exec = async (
+		params: { macro: number } | number,
+		type: Enums.MacroAction,
+	) => {
+		const { macro } = typeof params == 'object' ? params : { macro: params };
+		const c = new Commands.MacroActionCommand(macro, type);
+		return this.client.sendCommand(c);
+	};
 
-    go = async (params: {macro: number} | number) => {
-        return this._exec(params, Enums.MacroAction.Continue)
-    }
+	run = async (params: { macro: number } | number) => {
+		return this._exec(params, Enums.MacroAction.Run);
+	};
 
-    stop = async (params: {macro: number} | number) => {
-        return this._exec(params, Enums.MacroAction.Stop)
-    }
+	go = async (params: { macro: number } | number) => {
+		return this._exec(params, Enums.MacroAction.Continue);
+	};
+
+	stop = async (params: { macro: number } | number) => {
+		return this._exec(params, Enums.MacroAction.Stop);
+	};
 }

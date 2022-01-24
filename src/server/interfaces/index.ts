@@ -1,5 +1,3 @@
-import {BasicInterface} from './basic-interface'
-  
-export {
-    BasicInterface
-}
+import { BasicInterface } from './basic-interface';
+
+export { BasicInterface };

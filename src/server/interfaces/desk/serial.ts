@@ -48,22 +48,20 @@ export const LED_COLOR_MAP = {
 export class DeskSerialBoardInterface extends BasicInterface {
 	private matrix: MatrixCell[][][] = ['left', 'right'].map(() =>
 		[...Array(5)].map(() => {
-			return [...Array(9)].map(
-				(): MatrixCell => {
-					return {
-						led: {
-							color: 'off',
-							blink: 'off',
-							dim: true,
-							fast: false,
-						},
-						button: {
-							pressed: false,
-							pressedAt: undefined,
-						},
-					};
-				},
-			);
+			return [...Array(9)].map((): MatrixCell => {
+				return {
+					led: {
+						color: 'off',
+						blink: 'off',
+						dim: true,
+						fast: false,
+					},
+					button: {
+						pressed: false,
+						pressedAt: undefined,
+					},
+				};
+			});
 		}),
 	);
 
