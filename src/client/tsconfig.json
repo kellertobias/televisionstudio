@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "outDir": "../../dist/client",
+    "lib": ["ES2019", "DOM"],
+    "types": [],
+    "jsx": "react",
+    "paths": {
+      "@/client/*": ["./*"],
+      "@/shared/*": ["../shared/*"],
+    },
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "references": [{ "path": "../shared" }],
+}

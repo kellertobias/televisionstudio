@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "ES2019",
+        "sourceMap": true,
+        // "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+
+        "composite": true,
+    },
+    "project": ["src/client/tsconfig.json", "src/server/tsconfig.json", "src/shared/tsconfig.json"],
+    "include": ["**/*.ts"],
+    "exclude": ["**/*.test.ts", "**/*.spec.ts"],
+}
+  

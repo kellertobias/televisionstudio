@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "module": "commonjs",      
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "outDir": "../../dist/shared",
+    "lib": ["ES2019"],
+    "paths": {
+      "@/shared/*": ["./*"],
+    },
+    "composite": true,
+  },
+  "include": ["./**/*.ts"],
+  "references": []
+}
