@@ -117,9 +117,7 @@ export class MacroStore {
 				return;
 			}
 
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-ignore
-			const obj = yaml.safeLoad(contents);
+			const obj: any = yaml.load(contents);
 			console.log(
 				colors.yellow.bold(`[SHOWFILE] YAML File Loaded. Checking Structure…`),
 			);

@@ -1,12 +1,8 @@
-import _fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 
 import seri from 'seri';
 import sanitizeFilename from 'sanitize-filename';
-
-const fs = _fs.promises;
-
-const defaultEncoding = { encoding: 'utf8' };
 
 export interface DeviceParameters {
 	ip?: string;
@@ -101,7 +97,7 @@ export class ConfigBackend {
 		};
 	}
 
-	async listShowFiles(subpath: string[]): Promise<unknown> {
+	public async listShowFiles(subpath: string[]): Promise<unknown> {
 		return new Promise((resolve, reject) => {
 			const basepath = this.showFilesLocation;
 			const sanitzedSubpath = subpath
@@ -127,16 +123,17 @@ export class ConfigBackend {
 							};
 						}),
 					);
+					return files;
 				})
-				.catch((err) => {
-					if (err) {
-						return reject(err);
+				.catch((error) => {
+					if (error) {
+						return reject(error);
 					}
 				});
 		});
 	}
 
-	setShowFile(subpath: string[]) {
+	public setShowFile(subpath: string[]): void {
 		const basepath = this.showFilesLocation;
 		const sanitzedSubpath = subpath.map((sp) => sanitizeFilename(sp)).join('/');
 		const searchpath = path.join(basepath, sanitzedSubpath);
@@ -144,66 +141,77 @@ export class ConfigBackend {
 		this.showfile = searchpath;
 		this.generic.showfile = searchpath;
 
-		this._storeFile('generic');
+		this.storeFile('generic');
 	}
 
-	private openFile(name: string, mode?: string) {
-		if (mode === undefined) mode = 'a+';
+	private async openFile(
+		name: string,
+		mode?: string,
+	): Promise<fs.FileHandle | undefined> {
+		if (mode === undefined) {
+			mode = 'a+';
+		}
 		console.log(
 			`[CONFIG] Open File: ${this.configFilesLocation}/${name}.json as ${name}`,
 		);
 
-		return fs
-			.open(`${this.configFilesLocation}/${name}.json`, mode, 0o666)
-			.catch((err) => {
-				console.error(err);
-				return Promise.resolve(undefined);
-			});
+		try {
+			return await fs.open(
+				`${this.configFilesLocation}/${name}.json`,
+				mode,
+				438,
+			);
+		} catch (error) {
+			console.error(error);
+		}
 	}
 
-	async init() {
-		return this.load().then(() => {
-			this.initialized = true;
-			console.log(`[CONFIG] All Loaded.`, this.generic);
-			return Promise.resolve();
-		});
+	public async init(): Promise<void> {
+		await this.load();
+
+		this.initialized = true;
+		console.log(`[CONFIG] All Loaded.`, this.generic);
 	}
 
-	async _loadFile(varName: 'devices' | 'generic') {
+	private async loadFile(varName: 'devices' | 'generic') {
 		if (!this.files[varName]) {
 			console.error(`[CONFIG] Config file for ${varName} does not exist`);
 			return Promise.resolve();
 		}
-		return this.files[varName]
-			.then((handle) => {
-				console.log(`[CONFIG] Reading Config File for ${varName}`);
-				if (!handle) return Promise.resolve();
-				return handle.readFile(defaultEncoding);
-			})
-			.then((contents) => {
-				try {
-					if (!contents) {
-						console.error(`[CONFIG] Config File for ${varName} was Empty`);
-						return Promise.resolve();
-					}
-					console.log(`[CONFIG] Parsing Config File for ${varName}.`);
-					const obj = seri.parse(contents);
-					this[varName] = obj;
-					return Promise.resolve();
-				} catch (error) {
-					console.error('Parsing Config File Error', error);
-				}
-			});
+		const handle = await this.files[varName];
+
+		console.log(`[CONFIG] Reading Config File for ${varName}`);
+		if (!handle) {
+			return Promise.resolve();
+		}
+		const contents = await handle.readFile({ encoding: 'utf8' });
+
+		try {
+			if (!contents) {
+				console.error(`[CONFIG] Config File for ${varName} was Empty`);
+				return;
+			}
+			console.log(`[CONFIG] Parsing Config File for ${varName}.`);
+			const obj = seri.parse(contents);
+			this[varName] = obj;
+			return;
+		} catch (error) {
+			console.error('Parsing Config File Error', error);
+		}
 	}
 
-	async _storeFile(varName: 'devices' | 'generic') {
+	private async storeFile(varName: 'devices' | 'generic') {
 		console.log('Storing', varName);
-		if (!this.files[varName]) return Promise.resolve();
+		if (!this.files[varName]) {
+			return Promise.resolve();
+		}
 		const contents = seri.stringify(this[varName]);
 		console.log(contents);
 
 		const fileHandler = await this.openFile(varName, 'w+');
-		if (fileHandler === undefined) return Promise.resolve();
+		if (fileHandler === undefined) {
+			return Promise.resolve();
+		}
 
 		await fileHandler.writeFile(contents, 'utf-8');
 		await fileHandler.close();
@@ -214,35 +222,30 @@ export class ConfigBackend {
 		this.onSaveHandlers.push(handler);
 	}
 
-	load() {
-		return Promise.all([
-			this._loadFile('devices'),
-			this._loadFile('generic'),
-		]).then(() => {
-			console.log('[CONFIG] LOADED', {
-				devices: this.devices,
-				generic: this.generic,
-			});
-			return Promise.resolve();
+	public async load(): Promise<void> {
+		await Promise.all([this.loadFile('devices'), this.loadFile('generic')]);
+		console.log('[CONFIG] LOADED', {
+			devices: this.devices,
+			generic: this.generic,
 		});
 	}
 
-	private _store() {
+	private async storeInner() {
 		console.log('Storing Data');
-		return Promise.all([
-			this._storeFile('devices'),
-			this._storeFile('generic'),
-		]).then(() => {
-			this.onSaveHandlers.forEach((handler) => handler());
-		});
+		await Promise.all([this.storeFile('devices'), this.storeFile('generic')]);
+		this.onSaveHandlers.forEach((handler) => handler());
 	}
 
-	store(direct?: boolean) {
-		if (this.storeTimeout) clearTimeout(this.storeTimeout);
-		if (direct) this._store;
+	public store(direct?: boolean): void {
+		if (this.storeTimeout) {
+			clearTimeout(this.storeTimeout);
+		}
+		if (direct) {
+			this.storeInner();
+		}
 
 		this.storeTimeout = setTimeout(() => {
-			this._store();
+			this.storeInner();
 		}, 1000);
 	}
 }
