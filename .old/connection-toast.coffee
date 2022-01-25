@@ -112,21 +112,3 @@ class ConnectionStatus extends React.Component
 				}
 			</div>
 		</div>
-
-export class DeskGUI extends React.Component
-	render: () => 
-		return <div className="desk-body">
-			<div className="desk">
-				<div className="frame">
-					<Modal />
-					<SettingsView />
-					<MacrosView />
-					<TimeView />
-					<StateView />
-					<RateView />
-					<OBSView />
-					<AudioView />
-					<ConnectionStatus />
-				</div>
-			</div>
-		</div>

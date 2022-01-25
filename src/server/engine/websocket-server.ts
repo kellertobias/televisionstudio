@@ -7,29 +7,9 @@ import {
 	server as WebSocketServer,
 } from 'websocket';
 
-type TMethod = (params: unknown) => Promise<unknown> | void;
-type TRequest =
-	| {
-			t: 'method';
-			m: string;
-			i: string;
-			d: unknown;
-	  }
-	| {
-			t: 'ping';
-	  };
+import { TRequest, TResponse } from '@/shared/api-types/message';
 
-type TResponse =
-	| {
-			t: 'publish' | 'response';
-			i?: string;
-			m: string;
-			d?: unknown;
-			e?: string;
-	  }
-	| {
-			t: 'pong';
-	  };
+type TMethod = (params: unknown) => Promise<unknown> | void;
 
 type AugmentedConnection = Connection & {
 	sendMessage: (msg: TResponse) => void;
