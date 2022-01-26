@@ -14,9 +14,7 @@ console.log(`config: ${JSON.stringify(config, null, 2)}`);
 console.log(`*******************************************`);
 
 const app = express();
-const engine = new Engine();
-
-engine.start();
+const engine = new Engine(app);
 
 app.set('view engine', 'ejs');
 
@@ -28,6 +26,8 @@ app.use(pagesRouter());
 app.listen(config.SERVER_PORT, () => {
 	console.log(`App listening on port ${config.SERVER_PORT}!`);
 });
+
+engine.start();
 
 process.on('SIGTERM', () => {
 	engine.stop();

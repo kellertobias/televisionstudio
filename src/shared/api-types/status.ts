@@ -1,6 +1,7 @@
 export type TStatusMessage = {
 	message: null | string;
-	tyoe: null | 'green' | 'yellow' | 'red';
+	type: null | 'green' | 'yellow' | 'red';
+	date?: string;
 };
 
 export type TMessageError = {

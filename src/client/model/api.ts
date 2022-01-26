@@ -27,6 +27,8 @@ class APIConnection {
 
 	constructor(url: string) {
 		this.url = url;
+
+		this.connect();
 	}
 
 	private onError = () => {

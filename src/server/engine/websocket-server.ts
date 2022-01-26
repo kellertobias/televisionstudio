@@ -1,44 +1,36 @@
-import http from 'http';
-
+import { Express } from 'express';
 import { nanoid } from 'nanoid';
-import {
-	request as Request,
-	connection as Connection,
-	server as WebSocketServer,
-} from 'websocket';
+import wrapExpressWs from 'express-ws';
+import { WebSocket } from 'ws';
 
 import { TRequest, TResponse } from '@/shared/api-types/message';
 
 type TMethod = (params: unknown) => Promise<unknown> | void;
 
-type AugmentedConnection = Connection & {
-	sendMessage: (msg: TResponse) => void;
+type AugmentedConnection = {
+	sendMessage: (data: unknown) => void;
 };
 
 type TOnConnectionCallback = (connection: AugmentedConnection) => void;
 export class MicroWebsocketServer {
-	public port: number;
-	protected server: WebSocketServer | undefined;
-	protected httpServer: http.Server;
+	private app: Express;
 
 	protected connections: { [key: string]: AugmentedConnection } = {};
 	protected onConnectionCallbacks: TOnConnectionCallback[] = [];
 	protected methodStore: { [key: string]: TMethod } = {};
 	protected dataStore: { [key: string]: unknown } = {};
 
-	constructor(port: number) {
-		this.port = port;
-		console.log('Websocket Server Started');
-
-		this.httpServer = http.createServer();
+	constructor(app: Express) {
+		this.app = app;
+		console.log(`Creating Websocket Server on top of API Server`);
 	}
 
 	public start(): void {
 		console.log('Starting Server');
-		this.httpServer.listen(this.port);
-		this.server = new WebSocketServer({ httpServer: this.httpServer });
-		this.server.on('request', (request) => {
-			this.handleRequest(request);
+		const appWs = wrapExpressWs(this.app);
+		appWs.app.ws('/socket', (ws, req) => {
+			console.log('WS', req);
+			this.handleRequest(ws);
 		});
 
 		this.onConnection((conn: AugmentedConnection) => {
@@ -51,32 +43,27 @@ export class MicroWebsocketServer {
 	public stop(): void {
 		console.log('[WS] Stopped Websockets Server');
 
-		if (!this.server) {
-			console.log('Websocket Server did not run');
-		} else {
-			this.server.closeAllConnections();
-		}
-
 		this.methodStore = {};
 		this.dataStore = {};
 		this.connections = {};
-
-		this.httpServer.close();
 	}
 
-	private async handleRequest(request: Request) {
+	private async handleRequest(request: WebSocket) {
 		console.log('New Websocket Client Connected');
-		const connection = request.accept(undefined, request.origin);
 		const id: string = nanoid();
-		const conn: AugmentedConnection = <AugmentedConnection>connection;
 
-		conn.sendMessage = (msg: TResponse) => {
-			connection.sendUTF(JSON.stringify(msg));
+		const conn = {
+			sendMessage: (msg: TResponse) => {
+				request.send(JSON.stringify(msg));
+			},
 		};
 
 		this.connections[id] = conn;
 
-		connection.on('message', async (message) => {
+		request.on('message', async (rawMessage) => {
+			const strMessage = rawMessage.toString();
+			console.log(strMessage);
+			const message = JSON.parse(strMessage);
 			if (!(message as { utf8Data: string }).utf8Data) {
 				console.log('Websocket Message was empty');
 				return;
@@ -143,10 +130,11 @@ export class MicroWebsocketServer {
 				);
 			}
 		});
-		connection.on('close', () => {
+		request.on('close', () => {
 			console.log('Client has disconnected.');
 			delete this.connections[id];
 		});
+
 		this.onConnectionCallbacks.forEach((cb) => {
 			cb(conn);
 		});

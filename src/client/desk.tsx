@@ -1,5 +1,8 @@
 import React from 'react';
 
+import './style/index.scss';
+
+import './model/api';
 import { ConnectionToast } from './connection-toast';
 
 export const DeskGUI: React.FC = () => (

@@ -1,3 +1,5 @@
+import { Express } from 'express';
+
 import {
 	IModules,
 	AtemModule,
@@ -28,7 +30,7 @@ export class Engine {
 		web: WebApi;
 	};
 
-	constructor() {
+	constructor(app: Express) {
 		this.config = new ConfigBackend(
 			process.env.SETTINGS_PATH ? process.env.SETTINGS_PATH : './config',
 			process.env.SHOWDATA_PATH
@@ -47,7 +49,7 @@ export class Engine {
 
 		this.macros = new MacroEngine(this.config, this.modules);
 		this.servers = {
-			web: new WebApi(this.config, this.modules, this.macros),
+			web: new WebApi(this.config, this.modules, this.macros, app),
 		};
 
 		this.interfaces = {
