@@ -2,7 +2,7 @@ import path from 'path';
 
 import express, { Router } from 'express';
 
-import { IS_DEV, WEBPACK_PORT } from '../config';
+import { IS_DEV, LOAD_CLIENT, WEBPACK_PORT } from '../config';
 
 import { getManifest } from './manifest-manager';
 
@@ -20,7 +20,7 @@ export function pagesRouter(): Router {
 export function staticsRouter(): Router {
 	const router = Router();
 
-	if (IS_DEV) {
+	if (IS_DEV && LOAD_CLIENT) {
 		// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-extraneous-dependencies, global-require
 		const { createProxyMiddleware } = require('http-proxy-middleware');
 

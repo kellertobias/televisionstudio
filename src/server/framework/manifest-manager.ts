@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 
-import { IS_DEV, WEBPACK_PORT } from '../config';
+import { IS_DEV, LOAD_CLIENT, WEBPACK_PORT } from '../config';
 
 function getManifestFromWebpack(): Promise<string> {
 	return new Promise((resolve, reject) => {
+		console.log('MANIFEST');
 		// eslint-disable-next-line @typescript-eslint/no-var-requires, import/no-extraneous-dependencies, global-require
 		const request = require('request');
 		request.get(
@@ -19,7 +20,7 @@ let manifestStrCache: string;
 
 export async function getManifest(): Promise<unknown> {
 	let manifestStr: string;
-	if (IS_DEV) {
+	if (IS_DEV && LOAD_CLIENT) {
 		// load from webpack dev server
 		manifestStr = await getManifestFromWebpack();
 	} else if (manifestStrCache) {

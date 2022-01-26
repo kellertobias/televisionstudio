@@ -20,7 +20,6 @@ export class MacroStore {
 	modules: IModules;
 
 	constructor(config: ConfigBackend, modules: IModules) {
-		console.log('Generating Macro Store', config.generic.showfile);
 		this.config = config;
 		this.modules = modules;
 	}
@@ -138,14 +137,16 @@ export class MacroStore {
 
 			this.config.showfileTitle = obj.title;
 
-			if (obj?.obs?.scenefile) {
-				await this.modules.obs.waitForConnection();
-				await this.modules.obs.storage.setSceneCollection(obj.obs.scenefile);
-			} else {
-				console.log(
-					colors.yellow.bold(`[SHOWFILE] No OBS Scene Collection assigned`),
-				);
-			}
+			(async () => {
+				if (obj?.obs?.scenefile) {
+					await this.modules.obs.waitForConnection();
+					await this.modules.obs.storage.setSceneCollection(obj.obs.scenefile);
+				} else {
+					console.log(
+						colors.yellow.bold(`[SHOWFILE] No OBS Scene Collection assigned`),
+					);
+				}
+			})();
 
 			try {
 				console.log('LOADING:', obj);

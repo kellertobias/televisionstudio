@@ -170,7 +170,7 @@ export class ConfigBackend {
 		await this.load();
 
 		this.initialized = true;
-		console.log(`[CONFIG] All Loaded.`, this.generic);
+		console.log(`[CONFIG] All Loaded.`);
 	}
 
 	private async loadFile(varName: 'devices' | 'generic') {
@@ -180,7 +180,6 @@ export class ConfigBackend {
 		}
 		const handle = await this.files[varName];
 
-		console.log(`[CONFIG] Reading Config File for ${varName}`);
 		if (!handle) {
 			return Promise.resolve();
 		}
@@ -191,7 +190,6 @@ export class ConfigBackend {
 				console.error(`[CONFIG] Config File for ${varName} was Empty`);
 				return;
 			}
-			console.log(`[CONFIG] Parsing Config File for ${varName}.`);
 			const obj = seri.parse(contents);
 			this[varName] = obj;
 			return;
@@ -224,10 +222,6 @@ export class ConfigBackend {
 
 	public async load(): Promise<void> {
 		await Promise.all([this.loadFile('devices'), this.loadFile('generic')]);
-		console.log('[CONFIG] LOADED', {
-			devices: this.devices,
-			generic: this.generic,
-		});
 	}
 
 	private async storeInner() {

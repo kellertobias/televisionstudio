@@ -4,14 +4,23 @@ import { BasicInterface } from '../basic-interface';
 import { MacroEngine } from '../../engine/macros';
 import { ConfigBackend } from '../../engine/config';
 import { IModules } from '../../modules';
+import { MicroWebsocketServer } from '../../engine/websocket-server';
 
 export class DeskTallyInterface extends BasicInterface {
 	private connected = false;
 	private config: ConfigBackend;
 	private tallyUpdateInterval?: NodeJS.Timeout;
 
-	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
-		super(config, modules, macros);
+	private alreadyWarned = false;
+	private lastError = null;
+
+	constructor(
+		config: ConfigBackend,
+		modules: IModules,
+		macros: MacroEngine,
+		ws: MicroWebsocketServer,
+	) {
+		super(config, modules, macros, ws);
 		this.config = config;
 	}
 
@@ -33,12 +42,24 @@ export class DeskTallyInterface extends BasicInterface {
 		} catch (error: any) {
 			if (error.code === 'ECONNREFUSED') {
 				console.error('[TLY] ERROR: Connection Refused');
-			} else if (error.code === 'EHOSTDOWN' || error.code === 'EHOSTUNREACH') {
-				console.error(
-					`[TLY] ERROR: Host ${this.config.devices.tally.ip}:${this.config.devices.tally.port} Down`,
-				);
+			} else if (
+				error.code === 'EHOSTDOWN' ||
+				error.code === 'EHOSTUNREACH' ||
+				error.code === 'ETIMEDOUT'
+			) {
+				if (!this.alreadyWarned) {
+					console.error(
+						`[TLY] ERROR: Host ${this.config.devices.tally.ip}:${this.config.devices.tally.port} Down`,
+					);
+				}
+
+				this.alreadyWarned = true;
 			} else {
-				console.log('[TLY] ERROR:', error);
+				if (!this.alreadyWarned || String(error) !== this.lastError) {
+					this.lastError = error;
+					console.log('[TLY] ERROR:', error);
+				}
+				this.alreadyWarned = true;
 			}
 			throw new Error('Tally Server not Responding');
 		}

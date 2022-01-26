@@ -1,6 +1,7 @@
 import { Observable } from '../../../shared/observable';
 import { IModules } from '../../modules';
 import { ConfigBackend } from '../config';
+import { MicroWebsocketServer } from '../websocket-server';
 
 import { Macro } from './macro';
 import { MacroStore } from './store';
@@ -14,8 +15,15 @@ export class MacroEngine extends Observable {
 	modules: IModules;
 	config: ConfigBackend;
 
-	constructor(config: ConfigBackend, modules: IModules) {
+	private ws: MicroWebsocketServer;
+
+	constructor(
+		config: ConfigBackend,
+		modules: IModules,
+		ws: MicroWebsocketServer,
+	) {
 		super();
+		this.ws = ws;
 		this.modules = modules;
 		this.config = config;
 

@@ -1,3 +1,2 @@
-export const SoftwareVersion = '0.9';
-export const WSAPIPort =
-	Number.parseInt(process.env.WEBSOCKET_PORT, 10) || 9898;
+export const SoftwareVersion = '2.0.1';
+export const WSAPIPath = '/ws';

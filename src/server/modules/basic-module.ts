@@ -1,11 +1,14 @@
 import { ConfigBackend } from '../engine/config';
 import { Observable } from '../../shared/observable';
+import { MicroWebsocketServer } from '../engine/websocket-server';
 
 export abstract class BasicModule extends Observable {
 	protected config: ConfigBackend;
 	abstract connected: boolean;
-	constructor(config: ConfigBackend) {
+	protected ws: MicroWebsocketServer;
+	constructor(config: ConfigBackend, ws?: MicroWebsocketServer) {
 		super();
+		this.ws = ws;
 		this.config = config;
 	}
 

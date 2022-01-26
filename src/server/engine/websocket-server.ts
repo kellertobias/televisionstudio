@@ -1,9 +1,10 @@
 import { Express } from 'express';
 import { nanoid } from 'nanoid';
-import wrapExpressWs from 'express-ws';
+import wrapExpressWs, { Application } from 'express-ws';
 import { WebSocket } from 'ws';
 
 import { TRequest, TResponse } from '@/shared/api-types/message';
+import { WSAPIPath } from '@/shared/generic';
 
 type TMethod = (params: unknown) => Promise<unknown> | void;
 
@@ -12,6 +13,7 @@ type AugmentedConnection = {
 };
 
 type TOnConnectionCallback = (connection: AugmentedConnection) => void;
+
 export class MicroWebsocketServer {
 	private app: Express;
 
@@ -22,14 +24,13 @@ export class MicroWebsocketServer {
 
 	constructor(app: Express) {
 		this.app = app;
-		console.log(`Creating Websocket Server on top of API Server`);
 	}
 
 	public start(): void {
-		console.log('Starting Server');
-		const appWs = wrapExpressWs(this.app);
-		appWs.app.ws('/socket', (ws, req) => {
-			console.log('WS', req);
+		console.log('[WS] Starting WebSocket Server');
+		wrapExpressWs(this.app);
+
+		(this.app as unknown as Application).ws(WSAPIPath, (ws) => {
 			this.handleRequest(ws);
 		});
 
@@ -49,7 +50,7 @@ export class MicroWebsocketServer {
 	}
 
 	private async handleRequest(request: WebSocket) {
-		console.log('New Websocket Client Connected');
+		console.log(`[WS] New Websocket Client Connected`);
 		const id: string = nanoid();
 
 		const conn = {
@@ -62,7 +63,7 @@ export class MicroWebsocketServer {
 
 		request.on('message', async (rawMessage) => {
 			const strMessage = rawMessage.toString();
-			console.log(strMessage);
+			console.log(`[WS] IN: ${strMessage}`);
 			const message = JSON.parse(strMessage);
 			if (!(message as { utf8Data: string }).utf8Data) {
 				console.log('Websocket Message was empty');
@@ -80,7 +81,7 @@ export class MicroWebsocketServer {
 						return;
 					}
 
-					console.log(`[WEBAPI] Running Method ${data.m} with data:`, data.d);
+					console.log(`[WS] Running Method ${data.m} with data:`, data.d);
 
 					try {
 						try {
@@ -102,10 +103,7 @@ export class MicroWebsocketServer {
 							});
 						}
 					} catch (error_) {
-						console.error(
-							`[WEBAPI] Error when executing Method${data.m}:`,
-							error_,
-						);
+						console.error(`[WS] Error when executing Method${data.m}:`, error_);
 						const error = String(error_);
 						conn.sendMessage({
 							t: 'response',
@@ -121,7 +119,7 @@ export class MicroWebsocketServer {
 				} else {
 					// Kind of hackish, but best solution to find wrong API usage
 					const unknownType = (data as { t: string }).t as string;
-					console.log(`[WEBAPI] Call Type Unknown ${unknownType}`);
+					console.log(`[WS] Call Type Unknown ${unknownType}`);
 				}
 			} catch {
 				console.log(

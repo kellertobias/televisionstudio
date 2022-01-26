@@ -8,6 +8,7 @@ import { BasicInterface } from '../basic-interface';
 import { ConfigBackend } from '../../engine/config';
 import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
+import { MicroWebsocketServer } from '../../engine/websocket-server';
 
 export type LedColor =
 	| 'red'
@@ -79,11 +80,16 @@ export class DeskSerialBoardInterface extends BasicInterface {
 
 	lastStatus: number[] = [];
 
-	warnedOfNonexistence = false;
+	alreadyWarned = false;
 	config: ConfigBackend;
 
-	constructor(config: ConfigBackend, modules: IModules, macros: MacroEngine) {
-		super(config, modules, macros);
+	constructor(
+		config: ConfigBackend,
+		modules: IModules,
+		macros: MacroEngine,
+		ws: MicroWebsocketServer,
+	) {
+		super(config, modules, macros, ws);
 		this.config = config;
 	}
 
@@ -98,15 +104,17 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		}
 		this.socket = new Socket();
 		this.socket.on('error', (err) => {
-			console.log(`[SERIAL-CLIENT] Connection Error`, String(err));
+			if (!this.alreadyWarned) {
+				console.log(`[SERIAL-CLIENT] Connection Error`, String(err));
+			}
 		});
 
 		try {
-			if (!this.warnedOfNonexistence) {
+			if (!this.alreadyWarned) {
 				console.log(`[SERIAL-CLIENT] Open localhost:${serialPortServer}`);
 			}
 			this.socket.connect(serialPortServer, '127.0.0.1', () => {
-				this.warnedOfNonexistence = false;
+				this.alreadyWarned = false;
 				console.log(`[SERIAL-CLIENT] Connected`);
 				console.log('[SERIAL-CLIENT] Setting Status Update Interval');
 				this.interval = setInterval(() => {
@@ -118,10 +126,10 @@ export class DeskSerialBoardInterface extends BasicInterface {
 				}, 100);
 			});
 		} catch (error) {
-			if (!this.warnedOfNonexistence) {
+			if (!this.alreadyWarned) {
 				console.log('[SERIAL-CLIENT] Could not connect', error);
 			}
-			this.warnedOfNonexistence = true;
+			this.alreadyWarned = true;
 
 			this.reconnectInterval = setTimeout(() => {
 				this.connect();
@@ -132,9 +140,10 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		this.socket.on('data', this.onReceive.bind(this));
 
 		this.socket.on('close', () => {
-			if (!this.warnedOfNonexistence) {
+			if (!this.alreadyWarned) {
 				console.log('[SERIAL-CLIENT] Closed');
 			}
+			this.alreadyWarned = true;
 			if (this.interval) {
 				clearInterval(this.interval);
 			}

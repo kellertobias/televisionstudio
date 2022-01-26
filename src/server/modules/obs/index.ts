@@ -2,6 +2,7 @@ import OBSWebSocket from 'obs-websocket-js';
 
 import { ConfigBackend } from '../../engine/config';
 import { BasicModule } from '../basic-module';
+import { MicroWebsocketServer } from '../../engine/websocket-server';
 
 import { ObsModuleAudio } from './audio';
 import { ObsModuleGeneric } from './generic';
@@ -24,8 +25,8 @@ export class ObsModule extends BasicModule {
 	public readonly defaultAction = ['scenes', 'set'];
 	private connectingTimeout?: NodeJS.Timeout;
 
-	constructor(config: ConfigBackend) {
-		super(config);
+	constructor(config: ConfigBackend, ws: MicroWebsocketServer) {
+		super(config, ws);
 		this.client = new OBSWebSocket();
 
 		this.client.on('ConnectionOpened', () => {
@@ -74,7 +75,11 @@ export class ObsModule extends BasicModule {
 					.catch((error: any) => {
 						this.connected = false;
 						if (!this.printedConnectionError) {
-							console.log('[OBS] Error', error);
+							if (error.code === 'CONNECTION_ERROR') {
+								console.log('[OBS] Connection Error');
+							} else {
+								console.log('[OBS] General Error', error);
+							}
 							this.printedConnectionError = true;
 						}
 						return resolve(false);

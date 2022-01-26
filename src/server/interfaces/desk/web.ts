@@ -30,7 +30,6 @@ interface Norms {
 	atem: SingleNorm;
 }
 export class DeskWebInterface extends BasicInterface {
-	public server: MicroWebsocketServer;
 	public rateSelected = 'master';
 	public currentRates: TransitionRates = {
 		obs: 1,
@@ -63,17 +62,17 @@ export class DeskWebInterface extends BasicInterface {
 		config: ConfigBackend,
 		modules: IModules,
 		macros: MacroEngine,
-		server: MicroWebsocketServer,
+		ws: MicroWebsocketServer,
 	) {
-		super(config, modules, macros);
+		super(config, modules, macros, ws);
 		this.config = config;
-		this.server = server;
 		this.showTime = new Date(Date.now() + 1000 * 3600);
 
 		this.keyboard = new DeskKeyboardInterface(
 			config,
 			this.modules,
 			this.macros,
+			this.ws,
 		);
 		this.bootedAt = new Date();
 	}
@@ -172,7 +171,7 @@ export class DeskWebInterface extends BasicInterface {
 	}
 
 	private publishGlobalSettings() {
-		this.server.publish('/d/system-settings', {
+		this.ws.publish('/d/system-settings', {
 			channelMap: this.modules.atem.channelMap,
 			brightnessMain: this.keyboard.brightnessMain,
 			brightnessDim: this.keyboard.brightnessDim,
@@ -183,7 +182,7 @@ export class DeskWebInterface extends BasicInterface {
 
 	private publishInitialMacos() {
 		if (this.macros.master) {
-			this.server.publish(
+			this.ws.publish(
 				'/d/macros/master',
 				this.macroMap(this.macros.master, 0, 0),
 			);
@@ -191,12 +190,12 @@ export class DeskWebInterface extends BasicInterface {
 		for (let index = 1; index <= 8; index++) {
 			const macro = this.macros.getMacro(index);
 			if (!macro) {
-				this.server.publish(
+				this.ws.publish(
 					`/d/macros/${index}`,
 					this.macroMap(null, this.macros.page, index + 1),
 				);
 			} else {
-				this.server.publish(
+				this.ws.publish(
 					`/d/macros/${index}`,
 					this.macroMap(macro, macro.executor[0], macro.executor[1]),
 				);
@@ -205,7 +204,7 @@ export class DeskWebInterface extends BasicInterface {
 	}
 
 	private setupActions() {
-		this.server.methods({
+		this.ws.methods({
 			'/action/macros/reset': (params: { exec: number }) => {
 				const { exec } = params;
 				return this.macros.resetExec(exec);
@@ -222,7 +221,7 @@ export class DeskWebInterface extends BasicInterface {
 				const { selectRate } = params;
 				this.rateSelected = selectRate;
 
-				this.server.publish('/d/trans-rate', this.buildRatesAnswer({}));
+				this.ws.publish('/d/trans-rate', this.buildRatesAnswer({}));
 
 				return Promise.resolve();
 			},
@@ -233,7 +232,7 @@ export class DeskWebInterface extends BasicInterface {
 			'/action/system/set-target-time': (params: { time: string }) => {
 				const { time } = params;
 				this.showTime = new Date(time);
-				this.server.publish('/d/calendar', { showStart: this.showTime });
+				this.ws.publish('/d/calendar', { showStart: this.showTime });
 				this.config.generic.showStart = this.showTime;
 				this.config.store();
 				return Promise.resolve();
@@ -322,22 +321,19 @@ export class DeskWebInterface extends BasicInterface {
 			},
 		});
 
-		this.server.publish('/d/trans-rate', this.buildRatesAnswer({}));
+		this.ws.publish('/d/trans-rate', this.buildRatesAnswer({}));
 	}
 
 	private setupDataSourcesMixer() {
 		this.modules.atem.mix.onTransitionPosition((params) => {
 			const { pos } = params;
-			this.server.publish('/d/trans-pos', pos);
+			this.ws.publish('/d/trans-pos', pos);
 		});
 
 		this.modules.atem.mix.onTransitionRate((params) => {
 			const { rate } = params;
 			this.currentRates.master = rate;
-			this.server.publish(
-				'/d/trans-rate',
-				this.buildRatesAnswer({ master: rate }),
-			);
+			this.ws.publish('/d/trans-rate', this.buildRatesAnswer({ master: rate }));
 		});
 
 		this.modules.atem.dsk.onRate((param) => {
@@ -345,10 +341,7 @@ export class DeskWebInterface extends BasicInterface {
 			const dsk = param.dsk as 'dsk1' | 'dsk2';
 
 			this.currentRates[dsk] = rate;
-			this.server.publish(
-				'/d/trans-rate',
-				this.buildRatesAnswer({ [dsk]: rate }),
-			);
+			this.ws.publish('/d/trans-rate', this.buildRatesAnswer({ [dsk]: rate }));
 		});
 
 		this.modules.atem.onVideoModeChanged((param) => {
@@ -358,31 +351,28 @@ export class DeskWebInterface extends BasicInterface {
 				fps,
 			};
 
-			this.server.publish('/d/global', this.norms);
+			this.ws.publish('/d/global', this.norms);
 
 			this.connectionStatus.atem = true;
-			this.server.publish('/d/module-connection', this.connectionStatus);
+			this.ws.publish('/d/module-connection', this.connectionStatus);
 		});
 	}
 
 	private setupDataSourcesObs() {
 		this.modules.obs.onStatus((params) => {
 			this.connectionStatus.obs = params.connected;
-			this.server.publish('/d/module-connection', this.connectionStatus);
+			this.ws.publish('/d/module-connection', this.connectionStatus);
 		});
 
 		this.modules.obs.scene.onListChanged((params) => {
 			const { allScenes } = params;
-			this.server.publish('/d/scenes', allScenes);
+			this.ws.publish('/d/scenes', allScenes);
 		});
 
 		this.modules.obs.scene.onTransitionRateChanged((params) => {
 			const { rate } = params;
 			this.currentRates.obs = rate;
-			this.server.publish(
-				'/d/trans-rate',
-				this.buildRatesAnswer({ obs: rate }),
-			);
+			this.ws.publish('/d/trans-rate', this.buildRatesAnswer({ obs: rate }));
 		});
 
 		this.modules.obs.generic.onVideoSetupChanged((params) => {
@@ -392,19 +382,19 @@ export class DeskWebInterface extends BasicInterface {
 				fps,
 			};
 
-			this.server.publish('/d/global', this.norms);
+			this.ws.publish('/d/global', this.norms);
 		});
 
 		this.modules.obs.output.onRecordingChanged((params) => {
 			const { status, time } = params;
 
-			this.server.publish('/d/recording', { status, time });
+			this.ws.publish('/d/recording', { status, time });
 		});
 
 		this.modules.obs.output.onStreamChanged((params) => {
 			const { status, time, skipped, bandwidth, server } = params;
 
-			this.server.publish('/d/streaming', {
+			this.ws.publish('/d/streaming', {
 				status,
 				time,
 				skipped,
@@ -413,18 +403,18 @@ export class DeskWebInterface extends BasicInterface {
 			});
 		});
 
-		this.server.publish('/d/scenes', []);
+		this.ws.publish('/d/scenes', []);
 	}
 
 	private setupDataSourcesMacros() {
 		this.macros.onMasterExecutorChange((param) => {
 			const { macro } = param;
-			this.server.publish('/d/macros/master', this.macroMap(macro, 0, 0));
+			this.ws.publish('/d/macros/master', this.macroMap(macro, 0, 0));
 		});
 
 		this.macros.onExecutorChange((param) => {
 			const { macro, pageNumber, executorNumber } = param;
-			this.server.publish(
+			this.ws.publish(
 				`/d/macros/${executorNumber}`,
 				this.macroMap(macro, pageNumber, executorNumber),
 			);
@@ -481,11 +471,11 @@ export class DeskWebInterface extends BasicInterface {
 				}
 			}
 
-			this.server.publish('/d/trans-rate', this.buildRatesAnswer({}));
+			this.ws.publish('/d/trans-rate', this.buildRatesAnswer({}));
 		});
 
 		this.modules.status.onUpdate((params) => {
-			this.server.publish('/d/usage', params);
+			this.ws.publish('/d/usage', params);
 		});
 
 		this.keyboard.setup();
@@ -497,11 +487,11 @@ export class DeskWebInterface extends BasicInterface {
 		this.setupDataSourcesMacros();
 		this.publishGlobalSettings();
 
-		this.server.publish('/d/calendar', { showStart: this.showTime });
-		this.server.publish('/d/module-connection', this.connectionStatus);
+		this.ws.publish('/d/calendar', { showStart: this.showTime });
+		this.ws.publish('/d/module-connection', this.connectionStatus);
 
 		this.config.onSaveCallback(() => {
-			this.server.publish('/d/message', {
+			this.ws.publish('/d/message', {
 				date: new Date(),
 				message: 'Config Saved',
 				type: 'green',
@@ -514,7 +504,7 @@ export class DeskWebInterface extends BasicInterface {
 			const msg =
 				error?.reason ?? (error ? String(error) : 'Unknown Server Error');
 			console.log(error, msg);
-			this.server.publish('/d/message', {
+			this.ws.publish('/d/message', {
 				date: new Date(),
 				message: msg,
 				type: 'banner-yellow',

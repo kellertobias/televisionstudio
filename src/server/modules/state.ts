@@ -2,6 +2,7 @@ import os from 'os-utils';
 import fetch from 'node-fetch';
 
 import { ConfigBackend } from '../engine/config';
+import { MicroWebsocketServer } from '../engine/websocket-server';
 
 import { BasicModule } from './basic-module';
 
@@ -31,8 +32,8 @@ export class SystemStateModule extends BasicModule {
 
 	private errorPrinted = false;
 
-	constructor(config: ConfigBackend) {
-		super(config);
+	constructor(config: ConfigBackend, ws: MicroWebsocketServer) {
+		super(config, ws);
 		this.config = config;
 	}
 
@@ -110,6 +111,7 @@ export class SystemStateModule extends BasicModule {
 				return data;
 			});
 		}, 1000);
+
 		return Promise.resolve();
 	}
 }

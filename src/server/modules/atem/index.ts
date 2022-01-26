@@ -2,6 +2,7 @@ import { Atem, Commands } from 'atem-connection';
 
 import { BasicModule } from '../basic-module';
 import { ConfigBackend } from '../../engine/config';
+import { MicroWebsocketServer } from '../../engine/websocket-server';
 
 import { AtemModuleMixer } from './mixer';
 import { AtemModuleDsk } from './dsk';
@@ -65,9 +66,8 @@ export class AtemModule extends BasicModule {
 
 	private allModules: AtemSubModule[] = [];
 
-	constructor(config: ConfigBackend) {
-		super(config);
-
+	constructor(config: ConfigBackend, ws: MicroWebsocketServer) {
+		super(config, ws);
 		this.client = new Atem();
 
 		this.updateSourcesRev();

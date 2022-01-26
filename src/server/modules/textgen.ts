@@ -1,6 +1,7 @@
 import fetch, { BodyInit, Response } from 'node-fetch';
 
 import { ConfigBackend } from '../engine/config';
+import { MicroWebsocketServer } from '../engine/websocket-server';
 
 import { BasicModule } from './basic-module';
 
@@ -12,8 +13,8 @@ export class TextgenModule extends BasicModule {
 	private timeouts: NodeJS.Timeout[] = [];
 	public readonly defaultAction = ['show'];
 
-	constructor(config: ConfigBackend) {
-		super(config);
+	constructor(config: ConfigBackend, ws: MicroWebsocketServer) {
+		super(config, ws);
 		this.config = config;
 	}
 

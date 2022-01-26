@@ -9,12 +9,12 @@ import {
 	AudioModule,
 	SystemStateModule,
 } from '../modules';
-import { WebApi } from '../interfaces/web-api';
 import { DeskWebInterface } from '../interfaces/desk/web';
 import { DeskTallyInterface } from '../interfaces/desk/tally';
 
 import { ConfigBackend } from './config';
 import { MacroEngine } from './macros';
+import { MicroWebsocketServer } from './websocket-server';
 
 export class Engine {
 	config: ConfigBackend;
@@ -26,9 +26,7 @@ export class Engine {
 			tally: DeskTallyInterface;
 		};
 	};
-	servers: {
-		web: WebApi;
-	};
+	server: MicroWebsocketServer;
 
 	constructor(app: Express) {
 		this.config = new ConfigBackend(
@@ -38,19 +36,18 @@ export class Engine {
 				: './config/flashdrives',
 		);
 
+		this.server = new MicroWebsocketServer(app);
+
 		this.modules = {
-			atem: new AtemModule(this.config),
-			obs: new ObsModule(this.config),
+			atem: new AtemModule(this.config, this.server),
+			obs: new ObsModule(this.config, this.server),
 			sleep: new SleepModule(this.config),
-			text: new TextgenModule(this.config),
-			audio: new AudioModule(this.config),
-			status: new SystemStateModule(this.config),
+			text: new TextgenModule(this.config, this.server),
+			audio: new AudioModule(this.config, this.server),
+			status: new SystemStateModule(this.config, this.server),
 		};
 
-		this.macros = new MacroEngine(this.config, this.modules);
-		this.servers = {
-			web: new WebApi(this.config, this.modules, this.macros, app),
-		};
+		this.macros = new MacroEngine(this.config, this.modules, this.server);
 
 		this.interfaces = {
 			desk: {
@@ -58,16 +55,21 @@ export class Engine {
 					this.config,
 					this.modules,
 					this.macros,
-					this.servers.web.server,
+					this.server,
 				),
-				tally: new DeskTallyInterface(this.config, this.modules, this.macros),
+				tally: new DeskTallyInterface(
+					this.config,
+					this.modules,
+					this.macros,
+					this.server,
+				),
 			},
 		};
 	}
 
 	public stop(): void {
 		console.log('[ENGINE] Stopping Engine');
-		this.servers.web.shutdown();
+		this.server.stop();
 		Object.values(this.interfaces.desk).forEach((inter) => inter.shutdown());
 	}
 
@@ -82,13 +84,11 @@ export class Engine {
 
 		await this.config.init();
 		await this.macros.init();
-		await Promise.all(
-			Object.values(this.modules).map((inter) => inter.connect()),
-		);
-		console.log('[ENGINE] Starting User Interfaces');
+		Object.values(this.modules).map((inter) => inter.connect());
+		console.log('=== [ENGINE] Starting User Interfaces');
 
 		// Initialize Interfaces
-		await this.servers.web.connect();
+		await this.server.start();
 		await Promise.all(
 			Object.values(this.interfaces.desk).map((inter) => inter.connect()),
 		);
@@ -99,7 +99,7 @@ export class Engine {
 		console.log(
 			'========================================================================',
 		);
-		console.log('[ENGINE] DONE LOADING...');
+		console.log('[ENGINE] Startup Finished...');
 		console.log(
 			'========================================================================',
 		);
