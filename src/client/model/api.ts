@@ -22,7 +22,7 @@ class APIConnection {
 	private methodCallbacks = {};
 	private callbacks = {};
 	private interval = null;
-	private disconnectHandler: ConnectedCallback[] = [];
+	private connectionHandlers: ConnectedCallback[] = [];
 	private initialSources: Record<string, unknown> = {};
 
 	constructor(url: string) {
@@ -35,7 +35,8 @@ class APIConnection {
 		console.log('Websocket Open');
 		this.connected = true;
 		this.connecting = false;
-		(this.disconnectHandler || []).forEach((handler) => {
+		(this.connectionHandlers || []).forEach((handler) => {
+			console.log('Update Connection Handler');
 			handler(true);
 		});
 	};
@@ -44,7 +45,7 @@ class APIConnection {
 		console.log('Websocket Open');
 		this.connected = true;
 		this.connecting = false;
-		(this.disconnectHandler || []).forEach((handler) => {
+		(this.connectionHandlers || []).forEach((handler) => {
 			handler(true);
 		});
 	};
@@ -56,7 +57,7 @@ class APIConnection {
 			'Socket is closed. Reconnect will be connecting in 1 second.',
 			(e as { reason: string })?.reason,
 		);
-		(this.disconnectHandler || []).forEach((handler) => {
+		(this.connectionHandlers || []).forEach((handler) => {
 			handler(false);
 		});
 		if (this.interval == null) {
@@ -192,7 +193,10 @@ class APIConnection {
 	}
 
 	public onStatus(handler: ConnectedCallback) {
-		this.disconnectHandler.push(handler);
+		this.connectionHandlers.push(handler);
+		if (this.connected) {
+			handler(true);
+		}
 	}
 }
 

@@ -59,7 +59,6 @@ The software is written in Typescript and requires `node` and `npm` to be instal
 
 -   `npm i -D` for installing all the dependencies
 -   `npm run dev` - Start Development Environment. Client and server are in watch mode with source maps, opens [http://localhost:3000](http://localhost:3000)
--   `npm run storybook` - starts react storybook for UI component development.
 
 ### Deploying
 
