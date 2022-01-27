@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import clsx from 'clsx';
 
 export type WindowType =
@@ -12,12 +12,22 @@ export type WindowType =
 
 export const Window: React.FC<{
 	type?: WindowType;
-	title?: string;
+	title?: string | ReactElement;
+	titleMicro?: boolean;
 	compact?: boolean;
 	padded?: boolean;
 	disabled?: string;
 	onClick?: (e: React.MouseEvent) => void;
-}> = ({ type, title, compact, padded, disabled, onClick, children }) => {
+}> = ({
+	type,
+	title,
+	titleMicro,
+	compact,
+	padded,
+	disabled,
+	onClick,
+	children,
+}) => {
 	const onClickHandler = (e: React.MouseEvent) => {
 		if (onClick) {
 			onClick(e);
@@ -28,14 +38,24 @@ export const Window: React.FC<{
 			className={clsx({
 				window: true,
 				[`window-${type ?? 'default'}`]: true,
-				'window-titled': title !== undefined,
+				'window-titled': title !== undefined && titleMicro !== true,
 				'window-titled-compact': compact,
 				'window-padded': padded,
 			})}
 			onClick={onClickHandler}
 			style={{ opacity: disabled ? 0.3 : 1 }}
 		>
-			{title ? <div className="window-title">{title}</div> : null}
+			{title ? (
+				<div
+					className={clsx({
+						'window-title': titleMicro !== true,
+						'micro-title': titleMicro,
+					})}
+				>
+					{title}
+				</div>
+			) : null}
+
 			<div className="window-content">
 				{children}
 				{disabled !== undefined ? (
@@ -65,6 +85,7 @@ export const Window: React.FC<{
 Window.defaultProps = {
 	type: 'default',
 	title: undefined,
+	titleMicro: false,
 	compact: false,
 	padded: false,
 	disabled: undefined,

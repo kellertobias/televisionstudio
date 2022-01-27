@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import wrapExpressWs, { Application } from 'express-ws';
 import { WebSocket } from 'ws';
 
-import { TRequest, TResponse } from '@/shared/api-types/message';
+import { TRequest, TResponse } from '@/shared/types/message';
 import { WSAPIPath } from '@/shared/generic';
 
 type TMethod = (params: unknown) => Promise<unknown> | void;
@@ -62,18 +62,10 @@ export class MicroWebsocketServer {
 		this.connections[id] = conn;
 
 		request.on('message', async (rawMessage) => {
-			const strMessage = rawMessage.toString();
-			console.log(`[WS] IN: ${strMessage}`);
-			const message = JSON.parse(strMessage);
-			if (!(message as { utf8Data: string }).utf8Data) {
-				console.log('Websocket Message was empty');
-				return;
-			}
+			const message = rawMessage.toString();
 
 			try {
-				const data = JSON.parse(
-					(message as { utf8Data: string }).utf8Data,
-				) as TRequest;
+				const data = JSON.parse(message) as TRequest;
 				if (data.t === 'method') {
 					const method: TMethod = this.methodStore[data.m];
 					if (!method) {
@@ -122,10 +114,7 @@ export class MicroWebsocketServer {
 					console.log(`[WS] Call Type Unknown ${unknownType}`);
 				}
 			} catch {
-				console.log(
-					'Websocket Message was no JSON:',
-					(message as { utf8Data: string }).utf8Data,
-				);
+				console.log('Websocket Message was no JSON:', message);
 			}
 		});
 		request.on('close', () => {

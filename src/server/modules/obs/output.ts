@@ -1,6 +1,6 @@
-import { ObsSubModule } from './_sub';
+import { TMessageStream, TMessageRecord } from '@/shared/types/stream';
 
-type LiveStatus = 'idle' | 'starting' | 'stopping' | 'running';
+import { ObsSubModule } from './_sub';
 
 export class ObsModuleOutput extends ObsSubModule {
 	public streaming = false;
@@ -112,21 +112,11 @@ export class ObsModuleOutput extends ObsSubModule {
 		return this.update();
 	}
 
-	public onStreamChanged(
-		handler: (params: {
-			status: LiveStatus;
-			time: number;
-			skipped: number;
-			bandwidth: number;
-			server?: { server: string; key: string };
-		}) => void,
-	): void {
+	public onStreamChanged(handler: (params: TMessageStream) => void): void {
 		this.parent.registerEventHandler('stream-status', handler);
 	}
 
-	public onRecordingChanged(
-		handler: (params: { status: LiveStatus; time: number }) => void,
-	): void {
+	public onRecordingChanged(handler: (params: TMessageRecord) => void): void {
 		this.parent.registerEventHandler('recording-status', handler);
 	}
 

@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 
 import { apiUrl } from '@/client/constants';
-import { TMessageType, TResponse } from '@/shared/api-types/message';
+import { TMessageType, TResponse } from '@/shared/types/message';
 
 export type SubscriptionHandler<T> = (error: unknown, message: T) => void;
 export type ConnectedCallback = (connected: boolean) => void;
@@ -36,7 +36,6 @@ class APIConnection {
 		this.connected = true;
 		this.connecting = false;
 		(this.connectionHandlers || []).forEach((handler) => {
-			console.log('Update Connection Handler');
 			handler(true);
 		});
 	};

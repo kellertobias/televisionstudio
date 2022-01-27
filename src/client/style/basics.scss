@@ -687,17 +687,17 @@ $macros-list-height: 200px;
 }
 
 .transition-bar {
-  left: x-pos(20.5);
-  top: y-pos(8);
-  width: col-width(0.5);
-  height: col-height(9);
+  left: x-pos(16.25);
+  top: y-pos(3);
+  width: col-width(0.75);
+  height: col-height(14);
 }
 
 .audio-section {
   top: y-pos(8);
   left: x-pos(17);
   height: col-height(9);
-  width: col-width(3.5);
+  width: col-width(4);
 }
 
 .state-servers,
@@ -729,7 +729,7 @@ $macros-list-height: 200px;
 .obs-scenes {
   top: y-pos(3);
   left: x-pos(9);
-  width: col-width(8);
+  width: col-width(7.25);
   height: col-height(14);
 }
 

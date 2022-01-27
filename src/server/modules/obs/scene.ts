@@ -1,12 +1,7 @@
 import arrayEquals from '@/shared/array-equals';
+import { SceneListItem } from '@/shared/types/obs-scene';
 
 import { ObsSubModule } from './_sub';
-
-export interface SceneListItem {
-	name: string;
-	live?: boolean;
-	next?: boolean;
-}
 
 export class ObsModuleScenes extends ObsSubModule {
 	public scenes: SceneListItem[] = [];

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
-import { TStatusMessage } from '@/shared/api-types/status';
+import { TStatusMessage } from '@/shared/types/status';
 import { sleep } from '@/shared/helpers';
-import { API } from '@/client/model/api';
+import { API } from '@/client/api';
 import { Toast } from '@/client/widgets/toast';
 
 const defaultMessage: TStatusMessage = {

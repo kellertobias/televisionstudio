@@ -1,5 +1,18 @@
 import { exec as execChild } from 'child_process';
 
+import {
+	TMessageRates,
+	TRateTypes,
+	TMessageGlobalNorm,
+} from '@/shared/types/rates';
+import {
+	TMacroStep,
+	TMacroStepEmpty,
+	TMessageMacro,
+	TMessageMacroEmpty,
+} from '@/shared/types/macro';
+import { TMessageSceneList } from '@/shared/types/obs-scene';
+
 import { BasicInterface } from '../basic-interface';
 import { MicroWebsocketServer } from '../../engine/websocket-server';
 import { MacroEngine } from '../../engine/macros';
@@ -15,22 +28,10 @@ import { address } from '../../helpers/server-ip';
 
 import { DeskKeyboardInterface } from './keyboard';
 
-interface TransitionRates {
-	obs: number;
-	master: number;
-	dsk1: number;
-	dsk2: number;
-}
-interface SingleNorm {
-	size: string;
-	fps: number;
-}
-interface Norms {
-	obs: SingleNorm;
-	atem: SingleNorm;
-}
+type TransitionRates = Record<TRateTypes, number>;
+
 export class DeskWebInterface extends BasicInterface {
-	public rateSelected = 'master';
+	public rateSelected: TRateTypes = 'master';
 	public currentRates: TransitionRates = {
 		obs: 1,
 		master: 1,
@@ -38,7 +39,7 @@ export class DeskWebInterface extends BasicInterface {
 		dsk2: 1,
 	};
 	public showTime: Date;
-	public norms: Norms = {
+	public norms: TMessageGlobalNorm = {
 		obs: {
 			size: '0x0',
 			fps: 1,
@@ -87,7 +88,7 @@ export class DeskWebInterface extends BasicInterface {
 		return Promise.resolve();
 	}
 
-	private buildRatesAnswer(ratesIn: Partial<TransitionRates>) {
+	private buildRatesAnswer(ratesIn: Partial<TransitionRates>): TMessageRates {
 		return {
 			_rateSelected: this.rateSelected,
 			...this.currentRates,
@@ -95,7 +96,10 @@ export class DeskWebInterface extends BasicInterface {
 		};
 	}
 
-	private macroStepMap(macro: Macro, step: MacroStep | undefined) {
+	private macroStepMap(
+		macro: Macro,
+		step: MacroStep | undefined,
+	): TMacroStep | TMacroStepEmpty {
 		if (!step) {
 			return {};
 		}
@@ -113,7 +117,11 @@ export class DeskWebInterface extends BasicInterface {
 		};
 	}
 
-	private macroMap(macro: Macro | null, page: number, exec: number) {
+	private macroMap(
+		macro: Macro | null,
+		page: number,
+		exec: number,
+	): TMessageMacroEmpty | TMessageMacro {
 		if (!macro) {
 			return { exec: [page, exec], empty: true };
 		}
@@ -217,7 +225,7 @@ export class DeskWebInterface extends BasicInterface {
 				const { macroIndex } = params;
 				return this.macros.selectMaster({ macroIndex });
 			},
-			'/action/rate/change': (params: { selectRate: string }) => {
+			'/action/rate/change': (params: { selectRate: TRateTypes }) => {
 				const { selectRate } = params;
 				this.rateSelected = selectRate;
 
@@ -366,7 +374,7 @@ export class DeskWebInterface extends BasicInterface {
 
 		this.modules.obs.scene.onListChanged((params) => {
 			const { allScenes } = params;
-			this.ws.publish('/d/scenes', allScenes);
+			this.ws.publish('/d/scenes', allScenes as TMessageSceneList);
 		});
 
 		this.modules.obs.scene.onTransitionRateChanged((params) => {
@@ -427,7 +435,7 @@ export class DeskWebInterface extends BasicInterface {
 		this.keyboard.onRateChange((params) => {
 			const { push, direction } = params;
 			if (push) {
-				let selectRate = 'master';
+				let selectRate: TRateTypes = 'master';
 				switch (this.rateSelected) {
 					case 'master':
 						selectRate = 'obs';

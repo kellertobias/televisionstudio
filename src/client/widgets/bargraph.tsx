@@ -9,18 +9,18 @@ export const BarGraph: React.FC<
 	} & (
 		| {
 				horizontal: true;
-				veritcal?: false;
+				vertical?: false;
 		  }
 		| {
 				horizontal?: false;
-				veritcal: true;
+				vertical: true;
 		  }
 	)
-> = ({ veritcal, horizontal, width, value, title }) => (
+> = ({ vertical, horizontal, width, value, title }) => (
 	<div
 		className={clsx('bar-graph', {
-			'bar-graph-vertical': horizontal !== true || veritcal,
-			'bar-graph-horizontal': horizontal || veritcal !== true,
+			'bar-graph-vertical': horizontal !== true || vertical,
+			'bar-graph-horizontal': horizontal || vertical !== true,
 		})}
 		style={{
 			[horizontal ? 'height' : 'width']: width + 3,

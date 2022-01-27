@@ -31,6 +31,7 @@ export const AppRoot = (): JSX.Element => {
 		<Router history={browserHistory}>
 			<Switch>
 				<Route exact path="/" render={() => <DeskGUI />} />
+				<Route exact path="/desk" render={() => <DeskGUI />} />
 				<Route component={NotFoundPage} />
 			</Switch>
 		</Router>

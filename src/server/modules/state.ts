@@ -1,6 +1,8 @@
 import os from 'os-utils';
 import fetch from 'node-fetch';
 
+import { TServerStatus } from '@/shared/types/status';
+
 import { ConfigBackend } from '../engine/config';
 import { MicroWebsocketServer } from '../engine/websocket-server';
 
@@ -80,12 +82,7 @@ export class SystemStateModule extends BasicModule {
 			});
 	}
 
-	public onUpdate(
-		handler: (params: {
-			obs: { cpu: number; ram: number; disk: number };
-			desk: { cpu: number; ram: number };
-		}) => void,
-	): void {
+	public onUpdate(handler: (params: TServerStatus) => void): void {
 		this.registerEventHandler('status', handler);
 	}
 
@@ -102,11 +99,14 @@ export class SystemStateModule extends BasicModule {
 						: { cpu: 1, ram: 1, disk: 1 };
 
 				this.runEventHandlers('status', {
-					obs,
-					desk: {
-						cpu: os.loadavg(1) / os.cpuCount(),
-						ram: 1 - os.freememPercentage(),
+					workload: {
+						obs,
+						desk: {
+							cpu: os.loadavg(1) / os.cpuCount(),
+							ram: 1 - os.freememPercentage(),
+						},
 					},
+					warnings: [],
 				});
 				return data;
 			});

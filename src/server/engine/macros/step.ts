@@ -1,11 +1,11 @@
 import colors from 'colors';
 
+import { TTrigger } from '@/shared/types/macro';
+
 import promiseChain from '../../../shared/promise-serial';
 
 import type { Macro } from './macro';
 import { MacroAction, MacroActionDefinition } from './action';
-
-type TTrigger = 'GO' | number;
 
 export interface MacroStepDefinition {
 	stepNumber: number;
