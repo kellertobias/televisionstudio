@@ -1,4 +1,16 @@
-// import React from 'react';
+import React from 'react';
+
+export const MacroTimer: React.FC<{
+	done?: boolean;
+	stepDuration?: number;
+	stepTrigger?: number | string;
+	step: { duration: number; trigger: number | string };
+	isMasterWindow: boolean;
+	timeBase?: Date;
+	duration?: number;
+	change?: string;
+}> = () => null;
+
 // import {Component} from 'react';
 // import { Meteor } from 'meteor/meteor';
 // import { Window } from '../../widgets/window'

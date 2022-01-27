@@ -35,7 +35,6 @@ export const MacroStepList: React.FC<{
 				return (
 					<MacroStep
 						key={`step-${step.iteration}-${step.index ?? 0}`}
-						macro={macro}
 						step={step as TMacroStep}
 						isNextIteration={step?.iteration > 0}
 						isMasterWindow={isMasterWindow}
