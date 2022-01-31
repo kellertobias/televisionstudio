@@ -1,3 +1,5 @@
+// eslint-disable-next-line eslint-comments/disable-enable-pair
+/* eslint-disable unicorn/no-nested-ternary */
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import clsx from 'clsx';
@@ -6,13 +8,16 @@ import { API } from '../api';
 import { Modal } from '../widgets/modal';
 import { Button } from '../widgets/button';
 
-const checkIsShowfile = (file) =>
+type File = { type: 'file' | 'folder'; name: string };
+type Current = { title: string; file: string };
+
+const checkIsShowfile = (file: File) =>
 	file.type === 'file' &&
 	(file.name.endsWith('.yml') || file.name.endsWith('.yaml'));
 
-const checkIsFolder = (file) => file.type === 'folder';
+const checkIsFolder = (file: File) => file.type === 'folder';
 
-const getTopLevelSorting = (file) => {
+const getTopLevelSorting = (file: File) => {
 	if (checkIsShowfile(file)) {
 		return 1;
 	}
@@ -25,34 +30,36 @@ const getTopLevelSorting = (file) => {
 export const ShowModal: React.FC = () => {
 	const [currentTree, setTree] = useState([]);
 	const [currentSubpath, setSubpath] = useState([]);
-	const [current, setCurrent] = useState<
-		{ title: string; file: string } | undefined
-	>();
+	const [current, setCurrent] = useState<Current | undefined>();
 
 	const history = useHistory();
 
 	const loadDirectory = (subpath) => {
-		API.call('/action/loader/browser', { subpath }, (err, ret) => {
-			if (err) {
-				return console.error(err);
-			}
-
-			const tree = (ret.files ?? []).sort((a, b) => {
-				const topA = getTopLevelSorting(a);
-				const topB = getTopLevelSorting(b);
-				if (topA !== topB) {
-					return topA - topB;
+		API.call<{ files: File[]; current: Current }>(
+			'/action/loader/browser',
+			{ subpath },
+			(err, ret) => {
+				if (err) {
+					return console.error(err);
 				}
-				return a - b;
-			});
-			setTree(tree);
-			setSubpath(subpath);
-			setCurrent(ret.current);
-		});
+
+				const tree = (ret.files ?? []).sort((a, b) => {
+					const topA = getTopLevelSorting(a);
+					const topB = getTopLevelSorting(b);
+					if (topA !== topB) {
+						return topA - topB;
+					}
+					return 0;
+				});
+				setTree(tree);
+				setSubpath(subpath);
+				setCurrent(ret.current);
+			},
+		);
 	};
 
 	const loadShowfile = (subpath) => {
-		API.call('/action/loader/load', { subpath }, (err, ret) => {
+		API.call('/action/loader/load', { subpath }, (err) => {
 			if (err) {
 				return console.error(err);
 			}
