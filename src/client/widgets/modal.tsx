@@ -56,7 +56,7 @@ export const Modal: React.FC<{
 				<div className="modal-close">
 					<Button onClick={closeModal} icon={['fas', 'times']} />
 				</div>
-				{title ?? <div className="window-title">{title}</div>}
+				{title && <div className="window-title">{title}</div>}
 				<div className="window-content">
 					<Scrollable>{children}</Scrollable>
 				</div>
