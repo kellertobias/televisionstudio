@@ -41,9 +41,7 @@ export const MacroStep: React.FC<{
 				<MacroTimer
 					key="macro-step-timer-done"
 					done
-					stepDuration={step.duration}
-					stepTrigger={step.trigger}
-					step={{ duration: step.duration, trigger: step.trigger }}
+					{...step}
 					isMasterWindow={isMasterWindow}
 				/>
 			</MacroStepWrap>
@@ -55,10 +53,9 @@ export const MacroStep: React.FC<{
 			<MacroStepWrap step={step} isNextIteration={isNextIteration}>
 				<MacroTimer
 					key="macro-step-timer-started"
+					{...step}
 					timeBase={moment(step.started).add(step.duration, 'seconds').toDate()}
-					duration={step.duration}
 					change="duration"
-					step={{ duration: step.duration, trigger: step.trigger }}
 					isMasterWindow={isMasterWindow}
 				/>
 			</MacroStepWrap>
@@ -70,10 +67,10 @@ export const MacroStep: React.FC<{
 			<MacroStepWrap step={step} isNextIteration={isNextIteration}>
 				<MacroTimer
 					key="macro-step-timer-trigger"
+					{...step}
 					timeBase={moment(step.triggerAt).toDate()}
 					duration={step.trigger}
 					change="trigger"
-					step={{ duration: step.duration, trigger: step.trigger }}
 					isMasterWindow={isMasterWindow}
 				/>
 			</MacroStepWrap>
@@ -84,7 +81,7 @@ export const MacroStep: React.FC<{
 		<MacroStepWrap step={step} isNextIteration={isNextIteration}>
 			<MacroTimer
 				key="macro-step-timer-default"
-				step={{ duration: step.duration, trigger: step.trigger }}
+				{...step}
 				isMasterWindow={isMasterWindow}
 			/>
 		</MacroStepWrap>

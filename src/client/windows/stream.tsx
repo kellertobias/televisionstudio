@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import { TMessageStream, TMessageRecord } from '@/shared/types/stream';
@@ -7,6 +8,7 @@ import { Button } from '@/client/widgets/button';
 import { useSubscription } from '@/client/helpers/use-subscription';
 
 export const StreamWindow: React.FC = () => {
+	const history = useHistory();
 	const [streaming, setStreaming] = useState<null | TMessageStream>();
 	const [recording, setRecording] = useState<null | TMessageRecord>();
 
@@ -26,7 +28,13 @@ export const StreamWindow: React.FC = () => {
 
 	return (
 		<div className="state-data">
-			<Window type="pink" title="Stream/ Record" compact padded>
+			<Window
+				type="pink"
+				title="Stream/ Record"
+				compact
+				padded
+				onClick={() => history.push('/desk/stream')}
+			>
 				<div className="state-data-segment">
 					<h3>Stream</h3>
 					{streaming?.status === 'running' ? (

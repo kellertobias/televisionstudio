@@ -1,3 +1,10 @@
+import React from 'react';
+
+import { Modal } from '../widgets/modal';
+
+export const TimeModal: React.FC = () => {
+	return <Modal title="Set Countdown Target">xxx</Modal>;
+};
 // export class TimeModal extends React.Component
 // constructor: (props) ->
 //     super(props)

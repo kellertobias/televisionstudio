@@ -15,11 +15,11 @@ import { ObsSceneWindow } from './windows/obs-scene';
 import { AudioLevelWindow } from './windows/audio';
 import { MacroWindows } from './windows/macros';
 
-export const DeskGUI: React.FC = () => (
+export const DeskGUI: React.FC = ({ children }) => (
 	<div className="desk-body">
 		<div className="desk">
 			<div className="frame">
-				{/* <Modal /> */}
+				{children}
 				<MacroWindows />
 				<AudioLevelWindow />
 				<ObsSceneWindow />

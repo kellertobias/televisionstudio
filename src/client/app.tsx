@@ -8,6 +8,11 @@ import { far } from '@fortawesome/free-regular-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 
 import { DeskGUI } from './desk';
+import { TimeModal } from './modals/modal-time';
+import { ShowModal } from './modals/modal-shows';
+import { SettingsModal } from './modals/modal-settings';
+import { StreamSetupModal } from './modals/modal-streaming';
+import { AudioModal } from './modals/modal-audio';
 
 library.add(fas, far, fab);
 
@@ -30,8 +35,61 @@ export const AppRoot = (): JSX.Element => {
 	return (
 		<Router history={browserHistory}>
 			<Switch>
-				<Route exact path="/" render={() => <DeskGUI />} />
-				<Route exact path="/desk" render={() => <DeskGUI />} />
+				<Route
+					exact
+					path="/"
+					render={() => {
+						browserHistory.push('/desk');
+
+						return 'Will forward you to the Control Desk';
+					}}
+				/>
+				<Route exact path="/desk" render={() => <DeskGUI>xxx</DeskGUI>} />
+				<Route
+					exact
+					path="/desk/showtime"
+					render={() => (
+						<DeskGUI>
+							<TimeModal />
+						</DeskGUI>
+					)}
+				/>
+				<Route
+					exact
+					path="/desk/shows"
+					render={() => (
+						<DeskGUI>
+							<ShowModal />
+						</DeskGUI>
+					)}
+				/>
+				<Route
+					exact
+					path="/desk/settings"
+					render={() => (
+						<DeskGUI>
+							<SettingsModal />
+						</DeskGUI>
+					)}
+				/>
+				<Route
+					exact
+					path="/desk/stream"
+					render={() => (
+						<DeskGUI>
+							<StreamSetupModal />
+						</DeskGUI>
+					)}
+				/>
+				<Route
+					exact
+					path="/desk/audio"
+					render={() => (
+						<DeskGUI>
+							<AudioModal />
+						</DeskGUI>
+					)}
+				/>
 				<Route component={NotFoundPage} />
 			</Switch>
 		</Router>

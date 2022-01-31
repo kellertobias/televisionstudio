@@ -16,8 +16,8 @@ $border-shadow-strengt: 0.5;
 $screen-inner-width: $screen-width - 2 * $outer;
 $screen-inner-height: $screen-height - 2 * $outer;
 $gap: $inner;
-$grid-width: ($screen-inner-width + 2 * $gap) / $grid-columns;
-$grid-height: ($screen-inner-height + 2 * $gap) / $grid-rows;
+$grid-width: calc(($screen-inner-width + 2 * $gap) / $grid-columns);
+$grid-height: calc(($screen-inner-height + 2 * $gap) / $grid-rows);
 
 @function col-width($i) {
   @return $i * $grid-width - 2 * $gap;

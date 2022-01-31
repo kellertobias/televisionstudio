@@ -1,159 +1,195 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+
+import { useInterval } from '@/client/helpers/use-interval';
 
 export const MacroTimer: React.FC<{
 	done?: boolean;
-	stepDuration?: number;
-	stepTrigger?: number | string;
-	step: { duration: number; trigger: number | string };
+	duration?: number;
+	trigger?: number | 'GO';
 	isMasterWindow: boolean;
 	timeBase?: Date;
-	duration?: number;
-	change?: string;
-}> = () => null;
+	change?: 'duration' | 'trigger' | '';
+}> = ({ done, duration, trigger, isMasterWindow, timeBase, change }) => {
+	const [percentage, setPercentage] = useState(done ? 100 : 0);
+	const [currentTrigger, setTrigger] = useState<number | undefined | 'GO'>(
+		trigger,
+	);
+	const [currentDuration, setDuration] = useState<number | undefined>(duration);
 
-// import {Component} from 'react';
-// import { Meteor } from 'meteor/meteor';
-// import { Window } from '../../widgets/window'
-// import { Button } from '../../widgets/button'
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+	const clearUpdate = useRef<() => void>();
+	const update = () => {
+		if (done) {
+			setPercentage(100);
+			if (change === 'duration') {
+				setDuration(duration);
+			}
+			if (change === 'trigger') {
+				setTrigger(trigger);
+			}
+			clearUpdate.current?.();
+		} else if (timeBase) {
+			const elapsed = (timeBase.getTime() - Date.now()) / 1000;
 
-// import { api } from '/client/model'
+			setPercentage(
+				100 - Math.min(100, Math.max(0, (elapsed / duration) * 100)),
+			);
+			if (change === 'duration') {
+				setDuration(Math.max(0, elapsed));
+			}
+			if (change === 'trigger') {
+				setTrigger(Math.max(0, elapsed));
+			}
+		}
+	};
 
-// import _ from 'underscore'
-// import moment from 'moment'
+	clearUpdate.current = useInterval(100, update);
 
-// COLUMNS = 8
+	const printTrigger = () => {
+		if (done) {
+			return '-';
+		}
 
-// class MacroTimer extends React.Component
-// 	constructor: (props) ->
-// 		super(props)
-// 		this.state = {
-// 			percentage: if props.done then 100 else 0
-// 			duration: props.step?.duration
-// 			trigger: props.step?.trigger
-// 		}
-// 		this.interval = null
+		if (trigger === 'GO' || trigger === undefined || trigger === 0) {
+			return 'GO';
+		}
 
-// 	componentDidMount: () =>
-// 		if(!this.props.timeBase)
-// 			return
-// 		this.interval = setInterval(this.update, 100)
-// 		this.update()
+		if (currentTrigger === 0) {
+			return 'RUN';
+		}
 
-// 	componentWillUnmount: () =>
-// 		if this.interval != null
-// 			clearInterval(this.interval)
+		return `${Number(currentTrigger ?? trigger).toFixed(1)}s`;
+	};
 
-// 	update: () =>
-// 		done = false
-// 		set = {}
-// 		if this.props.done
-// 			done = true
-// 			percentage = 100
-// 			set[this.props.change] = this.props.step[this.props.change]
-// 		else
-// 			now = new Date()
-// 			timeBase = this.props.timeBase
-// 			duration = this.props.duration
-// 			elapsed = (timeBase - now) / 1000
-// 			percentage = elapsed / duration * 100
+	const printDuration = () => {
+		if (done) {
+			return 'DONE';
+		}
 
-// 			percentage = 100 - Math.min(100, Math.max(0, percentage))
-// 			set[this.props.change] = Math.max(0, elapsed)
-// 			set.percentage = percentage
+		if (!duration) {
+			return '0s';
+		}
 
-// 		this.setState(set)
+		return `${Number(currentDuration).toFixed(1)}s`;
+	};
 
-// 		done = percentage == 100
-// 		if done && this.interval != null
-// 			clearInterval(this.interval)
+	const printCombined = () => {
+		if (done) {
+			return 'DONE';
+		}
 
-// 	printCombined: () =>
-// 		if this.props.done
-// 			return 'DONE'
+		if (change === 'duration') {
+			return `${Number(duration).toFixed(1)}s`;
+		}
 
-// 		if this.props.change == 'duration'
-// 			return "#{Number(this.state.duration).toFixed(1)}s"
+		if (trigger === 'GO' || trigger === undefined) {
+			return 'GO';
+		}
 
-// 		if this.props.step.trigger == 'GO' or not this.props.step.trigger?
-// 			return 'GO'
-// 		return "#{Number(this.state.trigger).toFixed(1)}s"
+		return `${Number(trigger).toFixed(1)}s`;
+	};
 
-// 	printTrigger: () =>
-// 		if this.props.done
-// 			return '-'
+	return (
+		<>
+			<div className="macro-step-background">
+				<div
+					className="macro-step-background-fill"
+					style={{
+						background: change === 'trigger' ? '#BB8800' : '#005500',
+						position: 'absolute',
+						left: 0,
+						top: 0,
+						bottom: 0,
+						width: `${done ? 100 : percentage}%`,
+					}}
+				/>
+			</div>
+			<div
+				className="macro-step-info"
+				style={{
+					position: 'absolute',
+					zIndex: 10,
+					top: 0,
+					bottom: 0,
+					right: 0,
+				}}
+			>
+				{isMasterWindow ? (
+					<>
+						<div
+							style={{
+								position: 'absolute',
+								right: 0,
+								top: 0,
+								bottom: 0,
+								width: 70,
+							}}
+						/>
+						<div
+							style={{
+								position: 'absolute',
+								right: 48,
+								lineHeight: '18px',
+								top: 3,
+							}}
+						>
+							{printTrigger()}
+						</div>
+						<div
+							style={{
+								position: 'absolute',
+								right: 42,
+								borderRight: '1px solid white',
+								height: 18,
+								top: 4,
+							}}
+						/>
+						<div
+							style={{
+								position: 'absolute',
+								right: 5,
+								textAlign: 'right',
+								width: 34,
+								lineHeight: '18px',
+								top: 3,
+							}}
+						>
+							{printDuration()}
+						</div>
+					</>
+				) : (
+					<>
+						<div
+							style={{
+								position: 'absolute',
+								right: 0,
+								top: 0,
+								bottom: 0,
+								width: 50,
+							}}
+						/>
+						<div
+							style={{
+								position: 'absolute',
+								right: 5,
+								textAlign: 'right',
+								width: 34,
+								lineHeight: '18px',
+								top: 5,
+							}}
+						>
+							{printCombined()}
+						</div>
+					</>
+				)}
+			</div>
+		</>
+	);
+};
 
-// 		if this.props.step.trigger == 'GO'
-// 			return 'GO'
-
-// 		if not this.props.step.trigger
-// 			return 'GO'
-
-// 		if this.state.trigger == 0
-// 			return 'RUN'
-
-// 		return "#{Number(this.state.trigger ? this.props.step.trigger).toFixed(1)}s"
-
-// 	printDuration: () =>
-// 		if this.props.done
-// 			return 'DONE'
-
-// 		if not this.props.step.duration
-// 			return '0s'
-
-// 		duration = if this.state.duration == 0
-// 			0
-// 		else
-// 			this.state.duration
-
-// 		return "#{Number(duration).toFixed(1)}s"
-
-// 	render: ->
-// 		return <>
-// 			<div className="macro-step-background">
-// 				<div
-// 					className="macro-step-background-fill"
-// 					style={
-// 						background: switch this.props.change
-// 							when 'duration' then '#005500'
-// 							when 'trigger' then '#BB8800'
-// 							else '#005500'
-// 						position: 'absolute'
-// 						left: 0
-// 						top: 0
-// 						bottom: 0
-// 						width: "#{if this.props.done then 100 else this.state.percentage}%"
-// 					}
-// 				/>
-// 			</div>
-// 			<div
-// 				className="macro-step-info"
-// 				style={
-// 					position: 'absolute'
-// 					zIndex: 10
-// 					top: 0
-// 					bottom: 0
-// 					right: 0
-// 				}
-// 			>
-// 				{if this.props.isMasterWindow
-// 					<>
-// 						<div style={{position: 'absolute', right: 0, top: 0, bottom: 0, width: 70}}/>
-// 						<div style={{position: 'absolute', right: 48, lineHeight: "18px", top: 3}}>
-// 							{this.printTrigger()}
-// 						</div>
-// 						<div style={{position: 'absolute', right: 42, borderRight: '1px solid white', height: 18, top: 4}} />
-// 						<div style={{position: 'absolute', right: 5, textAlign: 'right', width: 34, lineHeight: "18px", top: 3}}>
-// 							{this.printDuration()}
-// 						</div>
-// 					</>
-// 				else
-// 					<>
-// 						<div style={{position: 'absolute', right: 0, top: 0, bottom: 0, width: 50}}/>
-// 						<div style={{position: 'absolute', right: 5, textAlign: 'right', width: 34, lineHeight: "18px", top: 5}}>
-// 							{this.printCombined()}
-// 						</div>
-// 					</>
-// 				}
-// 			</div>
-// 		</>
+MacroTimer.defaultProps = {
+	done: false,
+	duration: undefined,
+	trigger: 'GO',
+	change: '',
+	timeBase: undefined,
+};

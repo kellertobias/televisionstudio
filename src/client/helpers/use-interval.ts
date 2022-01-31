@@ -1,11 +1,23 @@
 import { useEffect } from 'react';
 
-export const useInterval = (interval: number, cb: () => void): void => {
-	return useEffect(() => {
-		const intervalPtr = setInterval(cb, interval);
+export const useInterval = (interval: number, cb: () => void): (() => void) => {
+	let intervalPtr: number;
+	let hasInterval = false;
+	useEffect(() => {
+		hasInterval = true;
+		intervalPtr = setInterval(cb, interval);
 
 		return () => {
-			clearInterval(intervalPtr);
+			if (hasInterval) {
+				clearInterval(intervalPtr);
+			}
+			hasInterval = false;
 		};
 	});
+
+	return () => {
+		if (hasInterval) {
+			clearInterval(intervalPtr);
+		}
+	};
 };

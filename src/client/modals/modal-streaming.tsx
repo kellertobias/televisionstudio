@@ -1,3 +1,11 @@
+import React from 'react';
+
+import { Modal } from '../widgets/modal';
+
+export const StreamSetupModal: React.FC = () => {
+	return <Modal title="Set Stream Target">xxx</Modal>;
+};
+
 // title: 'Streaming and Recording'
 // 					children: <>
 // 						Start Stream or Recording

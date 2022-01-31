@@ -22,14 +22,21 @@ export const BarGraph: React.FC<
 			'bar-graph-vertical': horizontal !== true || vertical,
 			'bar-graph-horizontal': horizontal || vertical !== true,
 		})}
-		style={{
-			[horizontal ? 'height' : 'width']: width + 3,
-		}}
+		style={
+			width === undefined
+				? {}
+				: {
+						[horizontal ? 'height' : 'width']: width + 3,
+				  }
+		}
 	>
 		<div
 			className="bar-graph-area"
 			style={{
-				[horizontal ? 'height' : 'width']: width,
+				...(width === undefined
+					? {}
+					: { [horizontal ? 'height' : 'width']: width }),
+
 				...(width !== undefined && horizontal
 					? {
 							marginTop: 1,

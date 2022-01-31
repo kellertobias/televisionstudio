@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import moment from 'moment';
 import 'moment-duration-format';
 
@@ -10,6 +11,7 @@ import { useInterval } from '@/client/helpers/use-interval';
 export const TimeWindow: React.FC = () => {
 	const [showStart, setShowStart] = useState<string | null>(null);
 	const [time, setTime] = useState<Date>(new Date());
+	const history = useHistory();
 
 	useSubscription<{ showStart: string }>('/d/calendar', (err, ret) => {
 		if (err) {
@@ -34,15 +36,7 @@ export const TimeWindow: React.FC = () => {
 				<Window
 					title="On Air in..."
 					titleMicro
-					onClick={
-						() => true
-						// portalStoreUpdate({
-						// 	title: "Set Countdown Target"
-						// 	children: <TimeModal
-						// 		target={this.state.showStart}
-						// 	/>
-						// })
-					}
+					onClick={() => history.push('/desk/showtime')}
 				>
 					{showStart
 						? `T${(
