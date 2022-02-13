@@ -20,7 +20,7 @@ export const MacroWindows: React.FC = () => {
 						selectMaster={(currentIndex) => {
 							setMasterSelect(false);
 							console.log('Making Macro Master:', currentIndex);
-							API.send('/action/macros/master', { macroIndex: index });
+							API.send('/action/macros/master', { macroIndex: currentIndex });
 						}}
 					/>
 				))}
