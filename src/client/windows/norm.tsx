@@ -22,7 +22,8 @@ export const VideoNormWindow: React.FC = () => {
 	return (
 		<div className="state-video-norm">
 			<Window type="pink" title="Video Norm" compact padded>
-				{videoNorm?.size ?? '???'}@{Number(videoNorm?.fps).toFixed(2)}
+				{(!videoNorm?.size && !videoNorm?.fps && 'Loading...') ||
+					`${videoNorm?.size ?? '???'}@${Number(videoNorm?.fps).toFixed(2)}`}
 			</Window>
 		</div>
 	);
