@@ -43,7 +43,6 @@ export const ConnectionToast: React.FC = () => {
 		const stopConnectionUpdate = API.subscribe<{ atem: boolean }>(
 			'/d/module-connection',
 			(err, ret) => {
-				console.log(ret);
 				setAtemConnected(ret.atem);
 			},
 		);

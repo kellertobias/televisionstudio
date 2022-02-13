@@ -97,7 +97,12 @@ export class ConfigBackend {
 		};
 	}
 
-	public async listShowFiles(subpath: string[]): Promise<unknown> {
+	public async listShowFiles(subpathIn: string[] | string): Promise<unknown> {
+		const subpath =
+			typeof subpathIn === 'string'
+				? (subpathIn = subpathIn.split('/'))
+				: subpathIn;
+
 		return new Promise((resolve, reject) => {
 			const basepath = this.showFilesLocation;
 			const sanitzedSubpath = subpath
@@ -133,7 +138,11 @@ export class ConfigBackend {
 		});
 	}
 
-	public setShowFile(subpath: string[]): void {
+	public setShowFile(subpathIn: string[] | string): void {
+		const subpath =
+			typeof subpathIn === 'string'
+				? (subpathIn = subpathIn.split('/'))
+				: subpathIn;
 		const basepath = this.showFilesLocation;
 		const sanitzedSubpath = subpath.map((sp) => sanitizeFilename(sp)).join('/');
 		const searchpath = path.join(basepath, sanitzedSubpath);

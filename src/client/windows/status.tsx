@@ -44,7 +44,6 @@ export const StatusWindow: React.FC = () => {
 	>({});
 
 	useSubscription<TServerStatus>('/d/usage', (err, ret) => {
-		console.log('Subscription Update');
 		if (err) {
 			return console.error(err);
 		}

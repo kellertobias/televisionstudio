@@ -44,7 +44,7 @@ export const AppRoot = (): JSX.Element => {
 						return 'Will forward you to the Control Desk';
 					}}
 				/>
-				<Route exact path="/desk" render={() => <DeskGUI>xxx</DeskGUI>} />
+				<Route exact path="/desk" render={() => <DeskGUI />} />
 				<Route
 					exact
 					path="/desk/showtime"
@@ -55,11 +55,10 @@ export const AppRoot = (): JSX.Element => {
 					)}
 				/>
 				<Route
-					exact
 					path="/desk/shows"
-					render={() => (
+					render={({ location, match }) => (
 						<DeskGUI>
-							<ShowModal />
+							<ShowModal path={location.pathname.slice(match.path.length)} />
 						</DeskGUI>
 					)}
 				/>
