@@ -33,8 +33,6 @@ export const ShowModal: React.FC<{ path: string | undefined }> = ({ path }) => {
 	const [current, setCurrent] = useState<Current | undefined>();
 	const history = useHistory();
 
-	console.log({ path });
-
 	useCall<{ files: File[]; current: Current }>(
 		'/action/loader/browser',
 		{ subpath: path },

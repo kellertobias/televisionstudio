@@ -87,6 +87,7 @@ export class MicroWebsocketServer {
 							});
 						} catch (error_: unknown) {
 							const error = String(error_);
+							console.error(error_);
 							conn.sendMessage({
 								t: 'response',
 								i: data.i,

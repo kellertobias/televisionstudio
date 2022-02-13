@@ -47,7 +47,6 @@ export class MacroStore {
 		this.initialized = false;
 
 		this.macros = null;
-		this.modules = null;
 	}
 
 	private buildMacro(macroObj: any) {
@@ -73,7 +72,7 @@ export class MacroStore {
 						const verifiedModuleName: ModuleNames =
 							moduleName.toLowerCase() as ModuleNames;
 
-						const moduleObj = this.modules[verifiedModuleName];
+						const moduleObj = this.modules?.[verifiedModuleName];
 						if (!moduleObj) {
 							throw new Error(`No Such Module: ${verifiedModuleName}`);
 						}
