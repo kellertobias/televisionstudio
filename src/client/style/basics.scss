@@ -554,12 +554,12 @@ legend {
 
 @mixin gen-window($name, $color) {
   .button-#{$name} {
-    border: 1px solid $color;
-    background-color: rgba($color, 0.5);
+    border: 1px solid $color !important;
+    background-color: rgba($color, 0.5) !important;
 
     &:hover {
-      border: 1px solid $color;
-      background-color: rgba($color, 0.7);
+      border: 1px solid $color !important;
+      background-color: rgba($color, 0.7) !important;
     }
   }
 
