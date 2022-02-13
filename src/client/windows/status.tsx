@@ -74,10 +74,6 @@ export const StatusWindow: React.FC = () => {
 		deskState = 'error';
 		deskWarning = 'Serial';
 	}
-	if (warnings?.tally) {
-		deskState = 'error';
-		deskWarning = 'Tally';
-	}
 
 	let obsState: ModuleStateValue = 'ok';
 	let obsWarning: string | undefined;
@@ -98,11 +94,23 @@ export const StatusWindow: React.FC = () => {
 
 	return (
 		<div className="state-servers">
-			<Window type="default" title="Device States" compact padded>
+			<Window
+				type={
+					Object.values(warnings).filter((x) => x).length > 0 ? 'red' : 'green'
+				}
+				title="Device States"
+				compact
+				padded
+			>
 				<ModuleState
 					name="Control Desk"
 					state={deskState}
 					reason={deskWarning}
+				/>
+				<ModuleState
+					name="Tally Sender"
+					state={!warnings?.tally ? 'ok' : 'error'}
+					reason={warnings?.tally}
 				/>
 				<ModuleState
 					name="ATEM Mixer"
@@ -110,11 +118,11 @@ export const StatusWindow: React.FC = () => {
 					reason={warnings?.atem}
 				/>
 				<ModuleState name="OBS Server" state={obsState} reason={obsWarning} />
-				<ModuleState
+				{/* <ModuleState
 					name="Audio Mixer"
 					state={!warnings?.audio ? 'ok' : 'error'}
 					reason={warnings?.audio}
-				/>
+				/> */}
 				<ModuleState
 					name="Text Generator"
 					state={!warnings?.text ? 'ok' : 'error'}
