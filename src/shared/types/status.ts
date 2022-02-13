@@ -9,8 +9,10 @@ export type TMessageError = {
 };
 
 export type TServerName =
+	| 'atem'
 	| 'desk'
 	| 'obs'
+	| 'text'
 	| 'tally'
 	| 'serial'
 	| 'audio'
@@ -19,8 +21,8 @@ export type TServerName =
 
 export type TServerStatus = {
 	workload: {
-		obs: { cpu: number; ram: number; disk: number };
+		obs: { cpu: number };
 		desk: { cpu: number; ram: number };
 	};
-	warnings: TServerName[];
+	warnings: Partial<Record<TServerName, string>>;
 };
