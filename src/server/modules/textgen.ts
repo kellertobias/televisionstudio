@@ -27,7 +27,7 @@ export class TextgenModule extends BasicModule {
 			// eslint-disable-next-line no-param-reassign
 			body = JSON.stringify(body);
 		}
-
+		this.setModuleError(null);
 		return fetch(
 			`http://${this.config.devices.textgen.ip}:${this.config.devices.textgen.port}${path}`,
 			{
@@ -37,6 +37,7 @@ export class TextgenModule extends BasicModule {
 			},
 		).catch((error: unknown) => {
 			console.log('[TXT] ERROR:', String(error));
+			this.setModuleError(String(error));
 			throw new Error(`TextGen Server Error: ${String(error)}`);
 		});
 	}

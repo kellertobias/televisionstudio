@@ -63,6 +63,10 @@ export class DeskKeyboardInterface extends DeskKeyboardInterfaceHelpers {
 		this.updateBrightness();
 	}
 
+	public getSerialInterface(): DeskSerialBoardInterface {
+		return this.serial;
+	}
+
 	private updateTabLedsUpper() {
 		const ledBase: (
 			| {

@@ -8,6 +8,7 @@ export abstract class BasicInterface extends Observable {
 	modules: IModules;
 	macros: MacroEngine;
 	protected ws: MicroWebsocketServer;
+	public moduleError = 'DISCONNECT';
 
 	constructor(
 		config: ConfigBackend,
@@ -21,6 +22,9 @@ export abstract class BasicInterface extends Observable {
 		this.macros = macros;
 	}
 
+	public setModuleError(error: string | null): void {
+		this.moduleError = error;
+	}
 	abstract connect(): Promise<void>;
 	abstract shutdown(): Promise<void>;
 	abstract setup(): Promise<void>;

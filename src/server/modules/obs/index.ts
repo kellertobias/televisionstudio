@@ -31,6 +31,7 @@ export class ObsModule extends BasicModule {
 
 		this.client.on('ConnectionOpened', () => {
 			this.connected = true;
+			this.setModuleError(null);
 			console.log('[OBS] Connected');
 			this.runEventHandlers('connection-status', { connected: true });
 		});
@@ -38,6 +39,7 @@ export class ObsModule extends BasicModule {
 		this.client.on('ConnectionClosed', () => {
 			if (this.connected) {
 				this.connected = false;
+				this.setModuleError('DISCONNECT');
 				console.log('[OBS] Disconnected');
 				this.runEventHandlers('connection-status', { connected: false });
 			}
@@ -69,6 +71,7 @@ export class ObsModule extends BasicModule {
 					})
 					.then(() => {
 						this.connected = true;
+						this.setModuleError(null);
 						this.printedConnectionError = false;
 						return resolve(true);
 					})
@@ -76,8 +79,10 @@ export class ObsModule extends BasicModule {
 						this.connected = false;
 						if (!this.printedConnectionError) {
 							if (error.code === 'CONNECTION_ERROR') {
+								this.setModuleError('DISCONNECT');
 								console.log('[OBS] Connection Error');
 							} else {
+								this.setModuleError(String(error));
 								console.log('[OBS] General Error', error);
 							}
 							this.printedConnectionError = true;

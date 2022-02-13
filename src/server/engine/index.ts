@@ -65,6 +65,18 @@ export class Engine {
 				),
 			},
 		};
+
+		this.modules.status.registerStateModule('atem', this.modules.atem);
+		this.modules.status.registerStateModule('text', this.modules.text);
+		this.modules.status.registerStateModule('obs', this.modules.obs);
+		this.modules.status.registerStateModule(
+			'tally',
+			this.interfaces.desk.tally,
+		);
+		this.modules.status.registerStateModule(
+			'serial',
+			this.interfaces.desk.web.getKeyboardModule().getSerialInterface(),
+		);
 	}
 
 	public stop(): void {

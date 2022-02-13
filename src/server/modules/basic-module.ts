@@ -6,6 +6,7 @@ export abstract class BasicModule extends Observable {
 	protected config: ConfigBackend;
 	abstract connected: boolean;
 	protected ws: MicroWebsocketServer;
+	public moduleError = 'DISCONNECT';
 	constructor(config: ConfigBackend, ws?: MicroWebsocketServer) {
 		super();
 		this.ws = ws;
@@ -17,4 +18,8 @@ export abstract class BasicModule extends Observable {
 	 */
 	abstract connect(): Promise<void>;
 	abstract readonly defaultAction: string[];
+
+	public setModuleError(error: string | null): void {
+		this.moduleError = error;
+	}
 }

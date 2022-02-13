@@ -78,6 +78,10 @@ export class DeskWebInterface extends BasicInterface {
 		this.bootedAt = new Date();
 	}
 
+	public getKeyboardModule(): DeskKeyboardInterface {
+		return this.keyboard;
+	}
+
 	public connect(): Promise<void> {
 		this.keyboard.connect();
 		this.showTime = this.config.generic.showStart;

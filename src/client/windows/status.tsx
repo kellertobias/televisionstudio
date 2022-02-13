@@ -23,7 +23,11 @@ const ModuleState: React.FC<{
 			})}
 		>
 			<span className="module-state-name">{name}</span>
-			{reason && <span className="module-state-reason">{reason}</span>}
+			{reason && (
+				<span className="module-state-reason">
+					<span>{reason}</span>
+				</span>
+			)}
 			<span className="module-state-icon">
 				{state === 'ok' && <FontAwesomeIcon icon={['far', 'check-circle']} />}
 				{state === 'warn' && (
@@ -70,7 +74,6 @@ export const StatusWindow: React.FC = () => {
 		deskState = 'error';
 		deskWarning = 'Serial';
 	}
-
 	if (warnings?.tally) {
 		deskState = 'error';
 		deskWarning = 'Tally';
@@ -90,7 +93,7 @@ export const StatusWindow: React.FC = () => {
 
 	if (warnings?.obs) {
 		obsState = 'error';
-		obsWarning = 'GENERAL';
+		obsWarning = warnings.obs;
 	}
 
 	return (
@@ -117,7 +120,7 @@ export const StatusWindow: React.FC = () => {
 					state={!warnings?.text ? 'ok' : 'error'}
 					reason={warnings?.text}
 				/>
-				<ModuleState
+				{/* <ModuleState
 					name="Web Presenter"
 					state={!warnings?.webpresenter ? 'ok' : 'error'}
 					reason={warnings?.webpresenter}
@@ -126,7 +129,7 @@ export const StatusWindow: React.FC = () => {
 					name="HyperDeck"
 					state={!warnings?.hyperdeck ? 'ok' : 'error'}
 					reason={warnings?.hyperdeck}
-				/>
+				/> */}
 			</Window>
 		</div>
 	);

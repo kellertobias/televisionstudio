@@ -1,10 +1,11 @@
 import os from 'os-utils';
 import fetch from 'node-fetch';
 
-import { TServerStatus } from '@/shared/types/status';
+import { TServerName, TServerStatus } from '@/shared/types/status';
 
 import { ConfigBackend } from '../engine/config';
 import { MicroWebsocketServer } from '../engine/websocket-server';
+import type { BasicInterface } from '../interfaces';
 
 import { BasicModule } from './basic-module';
 
@@ -33,6 +34,7 @@ export class SystemStateModule extends BasicModule {
 	};
 
 	private errorPrinted = false;
+	private stateModules: Record<string, BasicModule | BasicInterface> = {};
 
 	constructor(config: ConfigBackend, ws: MicroWebsocketServer) {
 		super(config, ws);
@@ -86,6 +88,13 @@ export class SystemStateModule extends BasicModule {
 		this.registerEventHandler('status', handler);
 	}
 
+	public registerStateModule(
+		name: TServerName,
+		stateModule: BasicModule | BasicInterface,
+	): void {
+		this.stateModules[name] = stateModule;
+	}
+
 	async connect(): Promise<void> {
 		this.interval = setInterval(() => {
 			return this.getRemoteStatus().then((data) => {
@@ -96,7 +105,14 @@ export class SystemStateModule extends BasicModule {
 								ram: data.ram,
 								disk: data.disk.used / data.disk.total,
 						  }
-						: { cpu: 1, ram: 1, disk: 1 };
+						: { cpu: 0, ram: 0, disk: 1 };
+
+				const warnings: Record<string, string> = {};
+				Object.entries(this.stateModules).forEach(([name, stateModule]) => {
+					if (stateModule.moduleError) {
+						warnings[name] = stateModule.moduleError;
+					}
+				});
 
 				this.runEventHandlers('status', {
 					workload: {
@@ -106,7 +122,7 @@ export class SystemStateModule extends BasicModule {
 							ram: 1 - os.freememPercentage(),
 						},
 					},
-					warnings: [],
+					warnings,
 				});
 				return data;
 			});

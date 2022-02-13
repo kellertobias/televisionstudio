@@ -81,6 +81,7 @@ export class AtemModule extends BasicModule {
 		this.allModules = [this.mix, this.dsk, this.usk, this.media, this.macro];
 
 		this.client.on('stateChanged', (state, pathToChange) => {
+			this.setModuleError(null);
 			this.allModules.forEach((sub) => sub.update(state, pathToChange));
 			const videoMode = this.getVideoMode(state.settings.videoMode);
 
@@ -128,6 +129,7 @@ export class AtemModule extends BasicModule {
 			this.client.on('connected', () => {
 				this.connected = true;
 				console.log('[ATEM] Connection Opened');
+				this.setModuleError(null);
 				resolve();
 			});
 		});
