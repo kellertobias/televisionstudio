@@ -13,7 +13,7 @@ import adafruit_rfm9x
 
 import threading
 
-SERVER_PORT=9868
+SERVER_PORT = 9868
 
 # Configure LoRa Radio
 RADIO_FREQ_MHZ = 868.0
@@ -45,11 +45,32 @@ prev_packet = None
 
 cooldown = 0
 
+current_pgm = 0
+current_pvw = 0
+sending = False
+
+
 def send(pgm, pvw):
-    data = "ATM,%d,%d" % (pgm, pvw)
-    print("Sending `%s`" % data)
-    data_bytes = bytes("%s\r\n" % data,"utf-8")
-    rfm9x.send(data_bytes)
+    if sending:
+        return
+    sending = True
+
+    try:
+        data = "ATM,%d,%d" % (pgm, pvw)
+        print("Sending `%s`" % data)
+        data_bytes = bytes("%s\r\n" % data, "utf-8")
+        rfm9x.send(data_bytes)
+    except Exception as e:
+        print(e)
+
+    sending = False
+
+
+def sendInterval():
+    while True:
+        time.sleep(10)
+        send(current_pgm, current_pvw)
+
 
 def receive():
     while True:
@@ -61,7 +82,7 @@ def receive():
         except Exception as e:
             print(e)
             time.sleep(0.1)
-            continue;
+            continue
 
         if packet is None:
             time.sleep(0.1)
@@ -100,19 +121,24 @@ class MyServer(BaseHTTPRequestHandler):
             params = {}
             for queryPart in queryParts:
                 [key, value] = queryPart.split('=')
-                params[key] =value
+                params[key] = value
             print(path, params)
-            send(int(params['pgm']),int(params['pvw']))
+
+            current_pgm = int(params['pgm'])
+            current_pvw = int(params['pvw'])
+
+            send(current_pgm, current_pvw)
             self.wfile.write(bytes("SENT", "utf-8"))
         except Exception as e:
             print(e)
 
-if __name__ == "__main__":        
+
+if __name__ == "__main__":
     webServer = HTTPServer(('0.0.0.0', SERVER_PORT), MyServer)
     print("Server started http:0.0.0.0/:%s" % SERVER_PORT)
 
-    # thread = Thread(target = receive)
-    # thread.start()
+    thread = Thread(target=sendInterval)
+    thread.start()
 
     try:
         webServer.serve_forever()
@@ -120,9 +146,5 @@ if __name__ == "__main__":
         pass
 
     webServer.server_close()
-    # thread.join()
+    thread.join()
     print("Server stopped.")
-
-
-
-
