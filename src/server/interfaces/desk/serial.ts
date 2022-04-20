@@ -98,6 +98,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			clearTimeout(this.reconnectInterval);
 		}
 		const serialPortServer = this.config.devices.desk.port;
+		const serialIpServer = this.config.devices.desk.ip || '127.0.0.1';
 		if (serialPortServer === undefined) {
 			console.log(`[SERIAL-CLIENT] Missing Server Port`);
 			return;
@@ -114,7 +115,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			if (!this.alreadyWarned) {
 				console.log(`[SERIAL-CLIENT] Open localhost:${serialPortServer}`);
 			}
-			this.socket.connect(serialPortServer, '127.0.0.1', () => {
+			this.socket.connect(serialPortServer, serialIpServer, () => {
 				this.alreadyWarned = false;
 				console.log(`[SERIAL-CLIENT] Connected`);
 				console.log('[SERIAL-CLIENT] Setting Status Update Interval');
