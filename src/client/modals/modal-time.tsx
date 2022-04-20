@@ -1,13 +1,13 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import moment from 'moment';
 import React, { useState } from 'react';
 import { useHistory } from 'react-router';
-import moment from 'moment';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-import { Modal } from '../widgets/modal';
+import { API } from '../api';
 import { useInterval } from '../helpers/use-interval';
 import { useSubscription } from '../helpers/use-subscription';
-import { API } from '../api';
 import { Button } from '../widgets/button';
+import { Modal } from '../widgets/modal';
 
 const fixDate = (date: Date | string | moment.Moment) => {
 	const dateMoment = moment(date);
@@ -81,9 +81,15 @@ export const TimeModal: React.FC = () => {
 				<div className="picker-form">
 					{renderPickerBlock(
 						showStartMoment,
-						`+ ${showStartMoment.diff(moment(), 'days')}`,
+						`+ ${showStartMoment.format('DD')}`,
 						'day',
-						'Days',
+						'Day',
+					)}
+					{renderPickerBlock(
+						showStartMoment,
+						`+ ${showStartMoment.format('MM')}`,
+						'day',
+						'Month',
 					)}
 					{renderPickerBlock(
 						showStartMoment,
@@ -104,6 +110,13 @@ export const TimeModal: React.FC = () => {
 				</div>
 
 				<div className="time-modal-save-button">
+					<Button
+						onClick={() => {
+							setShowStart(moment().add(1, 'hour').startOf('hour').toDate());
+						}}
+					>
+						Set to next Hour
+					</Button>
 					<Button onClick={save}>Save</Button>
 				</div>
 			</div>
