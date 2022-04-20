@@ -261,18 +261,22 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		let pressedAt: Date | undefined;
 
 		switch (true) {
-			case side === 3:
+			case side === 3: {
+				const direction = (value & 0b00000011) === 0b00000001 ? -1 : 1;
 				this.runEventHandlers('encoder', {
 					encoder: row,
-					direction: (value & 0b00000011) === 0b00000001 ? -1 : 1,
+					direction,
 				});
+				console.log('[KBD] encoder', direction);
 				break;
+			}
 
 			case side === 2:
 				this.runEventHandlers('fader', {
 					fader: row,
 					value,
 				});
+				console.log('[KBD] fader', row, value);
 				break;
 
 			default:
@@ -299,6 +303,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 					value: !value,
 					pressedAt,
 				});
+				console.log('[KBD] button', side, row, col, value);
 
 				break;
 		}
