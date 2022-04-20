@@ -1,13 +1,14 @@
-import os from 'os-utils';
 import fetch from 'node-fetch';
+import os from 'os-utils';
 
 import { TServerName, TServerStatus } from '@/shared/types/status';
 
 import { ConfigBackend } from '../engine/config';
 import { MicroWebsocketServer } from '../engine/websocket-server';
-import type { BasicInterface } from '../interfaces';
 
 import { BasicModule } from './basic-module';
+
+import type { BasicInterface } from '../interfaces';
 
 /**
  * This Class gets the overall system state/ performance

@@ -1,14 +1,14 @@
+import { Observable } from '../../shared/observable';
 import { ConfigBackend } from '../engine/config';
 import { MacroEngine } from '../engine/macros';
-import { Observable } from '../../shared/observable';
-import { IModules } from '../modules';
 import { MicroWebsocketServer } from '../engine/websocket-server';
+import { IModules } from '../modules';
 
 export abstract class BasicInterface extends Observable {
 	modules: IModules;
 	macros: MacroEngine;
 	protected ws: MicroWebsocketServer;
-	public moduleError = 'DISCONNECT';
+	public moduleError: string | null = 'DISCONNECT';
 
 	constructor(
 		config: ConfigBackend,

@@ -1,10 +1,10 @@
 import fetch, { BodyInit, Response } from 'node-fetch';
 
-import { BasicInterface } from '../basic-interface';
-import { MacroEngine } from '../../engine/macros';
 import { ConfigBackend } from '../../engine/config';
-import { IModules } from '../../modules';
+import { MacroEngine } from '../../engine/macros';
 import { MicroWebsocketServer } from '../../engine/websocket-server';
+import { IModules } from '../../modules';
+import { BasicInterface } from '../basic-interface';
 
 export class DeskTallyInterface extends BasicInterface {
 	private connected = false;
@@ -22,6 +22,7 @@ export class DeskTallyInterface extends BasicInterface {
 	) {
 		super(config, modules, macros, ws);
 		this.config = config;
+		this.setModuleError('INIT');
 	}
 
 	private async send(
@@ -30,6 +31,7 @@ export class DeskTallyInterface extends BasicInterface {
 		body?: BodyInit,
 	): Promise<Response> {
 		try {
+			this.setModuleError(null);
 			return await fetch(
 				`http://${this.config.devices.tally.ip}:${this.config.devices.tally.port}${path}`,
 				{
@@ -42,6 +44,7 @@ export class DeskTallyInterface extends BasicInterface {
 		} catch (error: any) {
 			if (error.code === 'ECONNREFUSED') {
 				console.error('[TLY] ERROR: Connection Refused');
+				this.setModuleError('DISCONNECT');
 			} else if (
 				error.code === 'EHOSTDOWN' ||
 				error.code === 'EHOSTUNREACH' ||
@@ -52,7 +55,7 @@ export class DeskTallyInterface extends BasicInterface {
 						`[TLY] ERROR: Host ${this.config.devices.tally.ip}:${this.config.devices.tally.port} Down`,
 					);
 				}
-
+				this.setModuleError('DISCONNECT');
 				this.alreadyWarned = true;
 			} else {
 				if (!this.alreadyWarned || String(error) !== this.lastError) {
@@ -60,6 +63,7 @@ export class DeskTallyInterface extends BasicInterface {
 					console.log('[TLY] ERROR:', error);
 				}
 				this.alreadyWarned = true;
+				this.setModuleError(String(error));
 			}
 			throw new Error('Tally Server not Responding');
 		}

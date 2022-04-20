@@ -15,6 +15,8 @@ export const ConnectionToast: React.FC = () => {
 	const [atemConnected, setAtemConnected] = useState<boolean>();
 	const [serverConnected, setServerConnected] = useState<boolean>();
 
+	const [connectionErrorsHidden, hideConnectionErrors] = useState(false);
+
 	useEffect(() => {
 		API.onStatus((connected) => {
 			setServerConnected(connected);
@@ -58,6 +60,10 @@ export const ConnectionToast: React.FC = () => {
 		setMessage(null);
 	};
 
+	const onCloseConnectionErrors = () => {
+		hideConnectionErrors(true);
+	};
+
 	if (message?.message && !message?.type?.startsWith('banner')) {
 		return (
 			<Toast toast type={message.type}>
@@ -66,17 +72,27 @@ export const ConnectionToast: React.FC = () => {
 		);
 	}
 
-	if (!serverConnected) {
+	if (!serverConnected && !connectionErrorsHidden) {
 		return (
-			<Toast banner type="red" icon={['fas', 'exclamation-circle']}>
+			<Toast
+				banner
+				type="red"
+				icon={['fas', 'exclamation-circle']}
+				onClose={onCloseConnectionErrors}
+			>
 				Server not Connected
 			</Toast>
 		);
 	}
 
-	if (!atemConnected) {
+	if (!atemConnected && !connectionErrorsHidden) {
 		return (
-			<Toast banner type="red" icon={['fas', 'exclamation-circle']}>
+			<Toast
+				banner
+				type="red"
+				icon={['fas', 'exclamation-circle']}
+				onClose={onCloseConnectionErrors}
+			>
 				Connection to ATEM lost...
 			</Toast>
 		);

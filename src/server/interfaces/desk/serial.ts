@@ -4,11 +4,11 @@ import { Socket } from 'net';
 
 import arrayEquals from '@/shared/array-equals';
 
-import { BasicInterface } from '../basic-interface';
 import { ConfigBackend } from '../../engine/config';
-import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
 import { MicroWebsocketServer } from '../../engine/websocket-server';
+import { IModules } from '../../modules';
+import { BasicInterface } from '../basic-interface';
 
 export type LedColor =
 	| 'red'
@@ -107,6 +107,7 @@ export class DeskSerialBoardInterface extends BasicInterface {
 			if (!this.alreadyWarned) {
 				console.log(`[SERIAL-CLIENT] Connection Error`, String(err));
 			}
+			this.setModuleError(String(err));
 		});
 
 		try {
@@ -117,9 +118,11 @@ export class DeskSerialBoardInterface extends BasicInterface {
 				this.alreadyWarned = false;
 				console.log(`[SERIAL-CLIENT] Connected`);
 				console.log('[SERIAL-CLIENT] Setting Status Update Interval');
+				this.setModuleError(null);
 				this.interval = setInterval(() => {
 					try {
 						this.sendStatus();
+						this.setModuleError(null);
 					} catch (error) {
 						console.log('[SERIAL-CLIENT] Error while sending Status', error);
 					}

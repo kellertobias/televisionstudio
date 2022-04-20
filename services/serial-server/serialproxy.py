@@ -50,8 +50,8 @@ connections = []
 
 ServerSocket = socket.socket()
 try:
-    print("Starting Server localhost:%s" % PORT)
-    ServerSocket.bind(('localhost', PORT))
+    print("Starting Server:%s" % PORT)
+    ServerSocket.bind(('0.0.0.0', PORT))
 except socket.error as e:
     print(str(e))
     sys.stdout.flush()
