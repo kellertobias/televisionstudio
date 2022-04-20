@@ -88,7 +88,7 @@ export const TimeModal: React.FC = () => {
 					{renderPickerBlock(
 						showStartMoment,
 						`+ ${showStartMoment.format('MM')}`,
-						'day',
+						'month',
 						'Month',
 					)}
 					{renderPickerBlock(

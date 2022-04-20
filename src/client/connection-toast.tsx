@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
-import { TStatusMessage } from '@/shared/types/status';
-import { sleep } from '@/shared/helpers';
 import { API } from '@/client/api';
 import { Toast } from '@/client/widgets/toast';
+import { sleep } from '@/shared/helpers';
+import { TStatusMessage } from '@/shared/types/status';
 
 const defaultMessage: TStatusMessage = {
 	message: `Loaded. Display Size: ${window.innerWidth}x${window.innerHeight}`,
@@ -53,6 +53,11 @@ export const ConnectionToast: React.FC = () => {
 		};
 	});
 
+	const onClose = () => {
+		console.log('Nulling Message');
+		setMessage(null);
+	};
+
 	if (message?.message && !message?.type?.startsWith('banner')) {
 		return (
 			<Toast toast type={message.type}>
@@ -69,8 +74,7 @@ export const ConnectionToast: React.FC = () => {
 		);
 	}
 
-	// @TODO Re-Enable
-	if (!atemConnected && false) {
+	if (!atemConnected) {
 		return (
 			<Toast banner type="red" icon={['fas', 'exclamation-circle']}>
 				Connection to ATEM lost...
@@ -84,6 +88,7 @@ export const ConnectionToast: React.FC = () => {
 				banner
 				type={message?.type ?? 'yellow'}
 				icon={['fas', 'exclamation-circle']}
+				onClose={onClose}
 			>
 				{message.message}
 			</Toast>

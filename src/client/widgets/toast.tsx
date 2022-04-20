@@ -1,16 +1,19 @@
-import React from 'react';
-import clsx from 'clsx';
 import {
-	FontAwesomeIcon,
-	FontAwesomeIconProps,
+  FontAwesomeIcon,
+  FontAwesomeIconProps
 } from '@fortawesome/react-fontawesome';
+import clsx from 'clsx';
+import React from 'react';
+
+import { Button } from './button';
 
 export const Toast: React.FC<
 	{
 		icon?: FontAwesomeIconProps['icon'];
 		type: 'red' | 'green' | 'yellow';
+		onClose?: () => void;
 	} & ({ banner: true; toast?: false } | { toast: true; banner?: false })
-> = ({ icon, banner, toast, type, children }) => {
+> = ({ icon, banner, toast, type, children, onClose }) => {
 	const classBase = banner ? 'banner' : 'toast';
 	return (
 		<div
@@ -20,6 +23,11 @@ export const Toast: React.FC<
 				[`${classBase}-${type}`]: true,
 			})}
 		>
+			{onClose && (
+				<div className="banner-close">
+					<Button onClick={onClose} icon={['far', 'times-circle']} />
+				</div>
+			)}
 			{icon ? (
 				<div className={`${classBase}-icon`}>
 					<FontAwesomeIcon icon={icon} style={{ marginRight: '5px' }} />
@@ -32,4 +40,5 @@ export const Toast: React.FC<
 
 Toast.defaultProps = {
 	icon: undefined,
+	onClose: undefined,
 };

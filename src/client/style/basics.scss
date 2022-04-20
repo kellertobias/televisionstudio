@@ -784,6 +784,21 @@ $macros-list-height: 200px;
     }
   }
 
+  .banner-close {
+    position: absolute;
+    right: 0;
+    top: 0;
+
+    .desk-button {
+      background-color: transparent;
+      font-weight: 100;
+      border: none;
+      font-size: 20px;
+      line-height: 20px;
+      padding: 10px;
+    }
+  }
+
   .banner-icon {
     font-size: 40px;
     margin: -10px 10px;
