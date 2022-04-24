@@ -215,9 +215,20 @@ export class DeskSerialBoardInterface extends BasicInterface {
 	): void {
 		const submatrix = this.matrix[side === 'left' ? 0 : 1];
 		const r = submatrix.length - row - 1;
-		const cell = submatrix[r][col];
+		const colSelect = row === 0 ? col - 1 : col;
+		if (colSelect < 0) {
+			return;
+		}
+		const cell = submatrix[r][colSelect];
 		if (!cell) {
-			throw new Error(`Cell ${r}:${col} does not exist.`);
+			console.error(`Cell ${r}:${col} does not exist.`, {
+				row,
+				r,
+				col,
+				colSelect,
+			});
+			return;
+			// throw new Error(`Cell ${r}:${col} does not exist.`);
 		}
 
 		cell.led = status;
@@ -232,9 +243,22 @@ export class DeskSerialBoardInterface extends BasicInterface {
 		const r = submatrix.length - row - 1;
 
 		status.forEach((led, col) => {
-			const cell = submatrix[r][col];
+			// Fix once
+			const colSelect = row === 0 ? col - 1 : col;
+			if (colSelect < 0) {
+				return;
+			}
+			const cell = submatrix[r][colSelect];
+
 			if (!cell) {
-				throw new Error(`Cell ${r}:${col} does not exist.`);
+				console.error(`Cell ${r}:${col} does not exist.`, {
+					row,
+					r,
+					col,
+					colSelect,
+				});
+				return;
+				// throw new Error(`Cell ${r}:${col} does not exist.`);
 			}
 			cell.led = led;
 		});
@@ -267,19 +291,18 @@ export class DeskSerialBoardInterface extends BasicInterface {
 					encoder: row,
 					direction,
 				});
-				console.log('[KBD] encoder', direction);
 				break;
 			}
 
-			case side === 2:
+			case side === 2: {
 				this.runEventHandlers('fader', {
 					fader: row,
 					value,
 				});
-				console.log('[KBD] fader', row, value);
 				break;
+			}
 
-			default:
+			default: {
 				if (side === -1 || row === -1 || col === -1) {
 					console.log('Address Invalid');
 					break;
@@ -300,12 +323,12 @@ export class DeskSerialBoardInterface extends BasicInterface {
 				this.runEventHandlers(`button-${side ? 'right' : 'left'}`, {
 					row,
 					col,
-					value: !value,
+					pressed: !value,
 					pressedAt,
 				});
-				console.log('[KBD] button', side, row, col, value);
 
 				break;
+			}
 		}
 	}
 

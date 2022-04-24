@@ -3,14 +3,14 @@
 // Prettier removes the braces around the ternary while eslint requires them -_-
 // Usually trying not to use them, however they are helpful here as this is low level binary manipulation.
 import { ConfigBackend } from '../../engine/config';
-import { IModules } from '../../modules';
 import { MacroEngine } from '../../engine/macros';
-import { TransitionOnairs, TransitionTies } from '../../modules/atem/usk';
 import { Macro } from '../../engine/macros/macro';
 import { MicroWebsocketServer } from '../../engine/websocket-server';
+import { IModules } from '../../modules';
+import { TransitionOnairs, TransitionTies } from '../../modules/atem/usk';
 
-import { DeskSerialBoardInterface, LedColor, LedStatus } from './serial';
 import { DeskKeyboardInterfaceHelpers } from './keyboard-helper';
+import { DeskSerialBoardInterface, LedColor, LedStatus } from './serial';
 
 type Tabs = 'macro' | 'aux' | 'scene' | 'audio';
 
