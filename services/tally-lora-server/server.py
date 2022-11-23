@@ -51,6 +51,7 @@ sending = False
 
 
 def send(pgm, pvw):
+    global sending
     if sending:
         return
     sending = True
