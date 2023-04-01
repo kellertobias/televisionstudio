@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name "Camera-Tally-rescue")(type "Legacy")(uri "${KIPRJMOD}/Camera Tally-rescue.lib")(options "")(descr ""))
+)
